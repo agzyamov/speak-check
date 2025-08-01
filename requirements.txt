@@ -1,0 +1,42 @@
+# Core dependencies for CEFR Speaking Exam Simulator
+
+# Streamlit for web interface
+streamlit>=1.28.0
+
+# Audio processing and speech recognition
+openai-whisper>=20231117
+# Alternative: speech_recognition>=3.10.0
+
+# Audio file handling and processing
+# librosa>=0.10.1
+# soundfile>=0.12.1
+# pyaudio>=0.2.11  # For microphone input
+
+# Natural Language Processing
+# spacy>=3.7.0
+# nltk>=3.8.1
+
+# AI/ML for evaluation
+# openai>=1.0.0  # For GPT-based evaluation
+# anthropic>=0.7.0  # For Claude-based evaluation
+
+# Data handling and utilities
+pandas>=2.1.0
+numpy>=1.24.0
+
+# Optional: Database support
+# sqlite3  # Built into Python
+# sqlalchemy>=2.0.0
+
+# Optional: Advanced audio processing
+# webrtcvad>=2.0.10  # Voice activity detection
+# noisereduce>=3.0.0  # Noise reduction
+
+# Development and testing (commented out for production)
+# pytest>=7.4.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.5.0
+
+# Note: Some packages are commented out as placeholders
+# Uncomment and install as needed during development
