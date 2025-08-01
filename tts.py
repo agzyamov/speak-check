@@ -13,6 +13,17 @@ import logging
 
 # TTS Engine imports (with graceful fallbacks)
 try:
+    import edge_tts
+    import asyncio
+    import tempfile
+    import os
+    EDGE_TTS_AVAILABLE = True
+except ImportError:
+    EDGE_TTS_AVAILABLE = False
+    edge_tts = None
+    asyncio = None
+
+try:
     import pyttsx3
     PYTTSX3_AVAILABLE = True
 except ImportError:
@@ -35,6 +46,7 @@ logger = logging.getLogger(__name__)
 
 class TTSEngine(Enum):
     """Available TTS engines."""
+    EDGE_TTS = "edge-tts"
     PYTTSX3 = "pyttsx3"
     GTTS = "gtts"
     SYSTEM = "system"
@@ -73,10 +85,10 @@ class TTSManager:
         self.engine_type = engine or self._detect_best_engine()
         self.engine = self._initialize_engine()
         
-        # Voice settings
+        # Voice settings  
         self.settings = {
-            "rate": 150,  # Words per minute
-            "volume": 0.8,  # Volume level (0.0 to 1.0)
+            "rate": 180,  # Words per minute (faster, clearer)
+            "volume": 0.9,  # Volume level (0.0 to 1.0)
             "voice_index": 0,  # Voice selection index
             "language": "en"  # Language code
         }
@@ -91,7 +103,10 @@ class TTSManager:
         Returns:
             TTSEngine: Best available engine
         """
-        if PYTTSX3_AVAILABLE:
+        if EDGE_TTS_AVAILABLE:
+            logger.info("Using Edge TTS engine (highest quality)")
+            return TTSEngine.EDGE_TTS
+        elif PYTTSX3_AVAILABLE:
             logger.info("Using pyttsx3 TTS engine")
             return TTSEngine.PYTTSX3
         elif GTTS_AVAILABLE:
@@ -109,7 +124,10 @@ class TTSManager:
             Initialized TTS engine object
         """
         try:
-            if self.engine_type == TTSEngine.PYTTSX3 and PYTTSX3_AVAILABLE:
+            if self.engine_type == TTSEngine.EDGE_TTS and EDGE_TTS_AVAILABLE:
+                # Edge TTS doesn't need persistent engine, just return True
+                return True
+            elif self.engine_type == TTSEngine.PYTTSX3 and PYTTSX3_AVAILABLE:
                 engine = pyttsx3.init()
                 return engine
             elif self.engine_type == TTSEngine.GTTS and GTTS_AVAILABLE:
@@ -133,10 +151,36 @@ class TTSManager:
                 self.engine.setProperty('rate', self.settings['rate'])
                 self.engine.setProperty('volume', self.settings['volume'])
                 
-                # Set voice if available
+                # Set voice with better quality selection
                 voices = self.engine.getProperty('voices')
-                if voices and len(voices) > self.settings['voice_index']:
-                    self.engine.setProperty('voice', voices[self.settings['voice_index']].id)
+                if voices:
+                    # Prefer high-quality English voices
+                    preferred_voices = ['Alex', 'Samantha', 'Victoria', 'Daniel', 'Karen']
+                    selected_voice = None
+                    
+                    # Try to find a preferred voice
+                    for voice in voices:
+                        voice_name = getattr(voice, 'name', '').split('.')[-1]  # Get last part of name
+                        if voice_name in preferred_voices:
+                            selected_voice = voice
+                            logger.info(f"Selected high-quality voice: {voice_name}")
+                            break
+                    
+                    # Fall back to first English voice if no preferred found
+                    if not selected_voice:
+                        for voice in voices:
+                            if 'en' in getattr(voice, 'languages', []):
+                                selected_voice = voice
+                                logger.info(f"Selected English voice: {getattr(voice, 'name', 'Unknown')}")
+                                break
+                    
+                    # Set the selected voice
+                    if selected_voice:
+                        self.engine.setProperty('voice', selected_voice.id)
+                    else:
+                        # Fall back to voice index
+                        if len(voices) > self.settings['voice_index']:
+                            self.engine.setProperty('voice', voices[self.settings['voice_index']].id)
                 
         except Exception as e:
             logger.error(f"Failed to configure TTS engine: {e}")
@@ -151,7 +195,26 @@ class TTSManager:
         voices = []
         
         try:
-            if self.engine_type == TTSEngine.PYTTSX3 and self.engine:
+            if self.engine_type == TTSEngine.EDGE_TTS and EDGE_TTS_AVAILABLE:
+                # Popular high-quality Edge TTS voices
+                edge_voices = [
+                    {"name": "Jenny (US Female)", "id": "en-US-JennyNeural", "lang": "en-US"},
+                    {"name": "Davis (US Male)", "id": "en-US-DavisNeural", "lang": "en-US"},
+                    {"name": "Aria (US Female)", "id": "en-US-AriaNeural", "lang": "en-US"},
+                    {"name": "Guy (US Male)", "id": "en-US-GuyNeural", "lang": "en-US"},
+                    {"name": "Jane (US Female)", "id": "en-US-JaneNeural", "lang": "en-US"},
+                    {"name": "Jason (US Male)", "id": "en-US-JasonNeural", "lang": "en-US"},
+                    {"name": "Sara (US Female)", "id": "en-US-SaraNeural", "lang": "en-US"},
+                    {"name": "Tony (US Male)", "id": "en-US-TonyNeural", "lang": "en-US"},
+                ]
+                for i, voice in enumerate(edge_voices):
+                    voices.append({
+                        "index": i,
+                        "name": voice["name"],
+                        "id": voice["id"],
+                        "languages": [voice["lang"]]
+                    })
+            elif self.engine_type == TTSEngine.PYTTSX3 and self.engine:
                 pyttsx3_voices = self.engine.getProperty('voices')
                 for i, voice in enumerate(pyttsx3_voices or []):
                     voices.append({
@@ -233,7 +296,9 @@ class TTSManager:
             bool: True if playback completed successfully
         """
         try:
-            if self.engine_type == TTSEngine.PYTTSX3 and self.engine:
+            if self.engine_type == TTSEngine.EDGE_TTS and EDGE_TTS_AVAILABLE:
+                return self._speak_edge_tts(text)
+            elif self.engine_type == TTSEngine.PYTTSX3 and self.engine:
                 return self._speak_pyttsx3(text)
             elif self.engine_type == TTSEngine.GTTS:
                 return self._speak_gtts(text)
@@ -244,6 +309,93 @@ class TTSManager:
             logger.error(f"TTS playback failed: {e}")
             return False
     
+    def _speak_edge_tts(self, text: str) -> bool:
+        """Speak using Microsoft Edge TTS engine."""
+        try:
+            if not EDGE_TTS_AVAILABLE:
+                return False
+            
+            # Get current voice selection
+            voices = self.get_available_voices()
+            voice_id = "en-US-JennyNeural"  # Default voice
+            if voices and self.settings['voice_index'] < len(voices):
+                voice_id = voices[self.settings['voice_index']]['id']
+            
+            # Create temporary file for audio
+            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_file:
+                temp_path = temp_file.name
+            
+            try:
+                # Run Edge TTS generation
+                async def generate_speech():
+                    communicate = edge_tts.Communicate(text, voice_id)
+                    await communicate.save(temp_path)
+                
+                # Run async function
+                if asyncio.get_event_loop().is_running():
+                    # If we're in an async context, create new loop
+                    import threading
+                    result = [None]
+                    exception = [None]
+                    
+                    def run_in_thread():
+                        try:
+                            new_loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(new_loop)
+                            new_loop.run_until_complete(generate_speech())
+                            result[0] = True
+                        except Exception as e:
+                            exception[0] = e
+                        finally:
+                            new_loop.close()
+                    
+                    thread = threading.Thread(target=run_in_thread)
+                    thread.start()
+                    thread.join()
+                    
+                    if exception[0]:
+                        raise exception[0]
+                else:
+                    # Normal async execution
+                    asyncio.run(generate_speech())
+                
+                # Play the generated audio file
+                if os.path.exists(temp_path) and os.path.getsize(temp_path) > 0:
+                    # Initialize pygame mixer
+                    try:
+                        if not pygame.mixer.get_init():
+                            pygame.mixer.init()
+                    except pygame.error:
+                        pygame.mixer.init()
+                    
+                    # Play the audio file
+                    pygame.mixer.music.load(temp_path)
+                    pygame.mixer.music.play()
+                    
+                    # Wait for playback to complete
+                    while pygame.mixer.music.get_busy():
+                        if self.stop_requested:
+                            pygame.mixer.music.stop()
+                            break
+                        time.sleep(0.1)
+                    
+                    return True
+                else:
+                    logger.error("Edge TTS failed to generate audio file")
+                    return False
+                    
+            finally:
+                # Clean up temporary file
+                try:
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
+                except Exception as e:
+                    logger.warning(f"Failed to clean up temp file: {e}")
+                    
+        except Exception as e:
+            logger.error(f"Edge TTS playback failed: {e}")
+            return False
+
     def _speak_pyttsx3(self, text: str) -> bool:
         """Speak using pyttsx3 engine."""
         try:
@@ -316,10 +468,20 @@ class TTSManager:
         self.stop_requested = True
         
         try:
-            if self.engine_type == TTSEngine.PYTTSX3 and self.engine:
+            if self.engine_type == TTSEngine.EDGE_TTS and pygame:
+                try:
+                    if pygame.mixer.get_init():
+                        pygame.mixer.music.stop()
+                except pygame.error:
+                    pass  # Mixer not initialized, nothing to stop
+            elif self.engine_type == TTSEngine.PYTTSX3 and self.engine:
                 self.engine.stop()
             elif self.engine_type == TTSEngine.GTTS and pygame:
-                pygame.mixer.music.stop()
+                try:
+                    if pygame.mixer.get_init():
+                        pygame.mixer.music.stop()
+                except pygame.error:
+                    pass  # Mixer not initialized, nothing to stop
         except Exception as e:
             logger.error(f"Failed to stop TTS playback: {e}")
         
@@ -337,7 +499,7 @@ class TTSManager:
             bool: True if pause was successful
         """
         try:
-            if self.engine_type == TTSEngine.GTTS and pygame:
+            if (self.engine_type == TTSEngine.EDGE_TTS or self.engine_type == TTSEngine.GTTS) and pygame:
                 pygame.mixer.music.pause()
                 self.state = TTSState.PAUSED
                 return True
@@ -402,7 +564,7 @@ class TTSManager:
             "state": self.state.value,
             "settings": self.settings.copy(),
             "voices_count": len(self.get_available_voices()),
-            "supports_pause": self.engine_type == TTSEngine.GTTS
+            "supports_pause": self.engine_type in [TTSEngine.EDGE_TTS, TTSEngine.GTTS]
         }
 
 # Global TTS manager instance

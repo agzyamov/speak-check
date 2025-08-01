@@ -107,6 +107,19 @@ def main():
         if auto_play != st.session_state.auto_play_question:
             st.session_state.auto_play_question = auto_play
         
+        # Voice selection
+        from tts import get_available_voices
+        voices = get_available_voices()
+        if voices:
+            voice_names = [f"{voice['name']}" for voice in voices]
+            selected_voice_idx = st.sidebar.selectbox(
+                "Voice Selection",
+                range(len(voice_names)),
+                format_func=lambda x: voice_names[x],
+                index=0,
+                help="Choose a different voice for better quality"
+            )
+        
         # Voice settings
         col_rate, col_vol = st.sidebar.columns(2)
         with col_rate:
@@ -114,7 +127,7 @@ def main():
                 "Speed",
                 min_value=50,
                 max_value=300,
-                value=150,
+                value=180,  # Updated default
                 step=25,
                 help="Speech rate (words per minute)"
             )
@@ -123,13 +136,16 @@ def main():
                 "Volume",
                 min_value=0.0,
                 max_value=1.0,
-                value=0.8,
+                value=0.9,  # Updated default
                 step=0.1,
                 help="Audio volume level"
             )
         
         # Apply TTS settings
-        configure_tts(rate=speech_rate, volume=volume)
+        if voices:
+            configure_tts(rate=speech_rate, volume=volume, voice_index=selected_voice_idx)
+        else:
+            configure_tts(rate=speech_rate, volume=volume)
         
         # Show current TTS status
         if is_speaking():
@@ -207,11 +223,34 @@ def main():
                     with col_tts1:
                         if st.button("▶️ Play", help="Read the question aloud"):
                             with st.spinner("🔊 Playing question..."):
-                                speak(question, async_playback=False)  # Synchronous for testing
+                                try:
+                                    st.write(f"🐛 DEBUG: About to speak: '{question[:50]}...'")
+                                    result = speak(question, async_playback=False)
+                                    st.write(f"🐛 DEBUG: TTS result: {result}")
+                                    if result:
+                                        st.success("✅ TTS completed successfully!")
+                                    else:
+                                        st.error("❌ TTS failed!")
+                                except Exception as e:
+                                    st.error(f"❌ TTS Error: {e}")
+                                    import traceback
+                                    st.code(traceback.format_exc())
                     
                     with col_tts2:
                         if st.button("⏹️ Stop", help="Stop audio playback"):
                             stop_speaking()
+                            
+                    # Add debug test button
+                    col_debug = st.columns(1)[0]
+                    with col_debug:
+                        if st.button("🧪 Test TTS (Simple)", help="Test TTS with simple text"):
+                            try:
+                                import subprocess
+                                st.write("🐛 Testing macOS say command...")
+                                subprocess.run(['say', 'Testing from Streamlit'], check=True)
+                                st.success("✅ macOS TTS completed!")
+                            except Exception as e:
+                                st.error(f"❌ macOS TTS Error: {e}")
                     
                     with col_tts3:
                         # TTS Status indicator
