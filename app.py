@@ -39,6 +39,8 @@ def main():
         st.session_state.tts_enabled = True
     if 'auto_play_question' not in st.session_state:
         st.session_state.auto_play_question = True
+    if 'session_history' not in st.session_state:
+        st.session_state.session_history = []
     
     # Header
     st.title("🎤 CEFR Speaking Exam Simulator")
@@ -204,7 +206,8 @@ def main():
                     
                     with col_tts1:
                         if st.button("▶️ Play", help="Read the question aloud"):
-                            speak(question, async_playback=True)
+                            with st.spinner("🔊 Playing question..."):
+                                speak(question, async_playback=False)  # Synchronous for testing
                     
                     with col_tts2:
                         if st.button("⏹️ Stop", help="Stop audio playback"):
@@ -222,13 +225,13 @@ def main():
                         if st.session_state.auto_play_question:
                             st.caption("🔄 Auto-play enabled")
                 
-                # Auto-play functionality
-                if (st.session_state.tts_enabled and 
-                    st.session_state.auto_play_question and 
-                    question_changed and 
-                    question.strip()):
-                    # Auto-play the question when it first appears
-                    speak(question, async_playback=True)
+                # Auto-play functionality (temporarily disabled for testing)
+                # if (st.session_state.tts_enabled and 
+                #     st.session_state.auto_play_question and 
+                #     question_changed and 
+                #     question.strip()):
+                #     # Auto-play the question when it first appears
+                #     speak(question, async_playback=True)
             
             # Recording area
             st.subheader("🎙️ Record Your Response")
