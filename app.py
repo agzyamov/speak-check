@@ -111,7 +111,7 @@ def main():
                 st.success(f"🎤 **Active Test - Level {cefr_level}**")
             with col_btn2:
                 if st.button("🔄 New Question", use_container_width=True):
-                    # Force regeneration of question by clearing cache
+                    # Force regeneration of question by rerunning the app
                     st.rerun()
             with col_btn3:
                 if st.button("❌ End Test", type="secondary"):
