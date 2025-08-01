@@ -9,6 +9,7 @@ import streamlit as st
 from questions import get_question_by_level
 from transcribe import transcribe_audio
 from evaluate import evaluate_speaking_response
+from tts import speak, stop_speaking, is_speaking, get_available_voices, configure_tts
 
 # TODO: Add session state management for exam progress
 # TODO: Implement audio recording functionality
@@ -32,6 +33,12 @@ def main():
         st.session_state.current_level = "B1"
     if 'test_session_id' not in st.session_state:
         st.session_state.test_session_id = None
+    if 'current_question' not in st.session_state:
+        st.session_state.current_question = ""
+    if 'tts_enabled' not in st.session_state:
+        st.session_state.tts_enabled = True
+    if 'auto_play_question' not in st.session_state:
+        st.session_state.auto_play_question = True
     
     # Header
     st.title("🎤 CEFR Speaking Exam Simulator")
@@ -73,6 +80,58 @@ def main():
     else:
         st.sidebar.info("⏳ **Test Not Started**")
         st.sidebar.write("Select a level and click 'Start Speaking Test' to begin")
+    
+    st.sidebar.markdown("---")
+    
+    # TTS Settings
+    st.sidebar.subheader("🔊 Audio Settings")
+    
+    # TTS Enable/Disable
+    tts_enabled = st.sidebar.checkbox(
+        "Enable Text-to-Speech",
+        value=st.session_state.tts_enabled,
+        help="Enable automatic reading of speaking prompts"
+    )
+    if tts_enabled != st.session_state.tts_enabled:
+        st.session_state.tts_enabled = tts_enabled
+    
+    if tts_enabled:
+        # Auto-play setting
+        auto_play = st.sidebar.checkbox(
+            "Auto-play questions",
+            value=st.session_state.auto_play_question,
+            help="Automatically play questions when they appear"
+        )
+        if auto_play != st.session_state.auto_play_question:
+            st.session_state.auto_play_question = auto_play
+        
+        # Voice settings
+        col_rate, col_vol = st.sidebar.columns(2)
+        with col_rate:
+            speech_rate = st.slider(
+                "Speed",
+                min_value=50,
+                max_value=300,
+                value=150,
+                step=25,
+                help="Speech rate (words per minute)"
+            )
+        with col_vol:
+            volume = st.slider(
+                "Volume",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.8,
+                step=0.1,
+                help="Audio volume level"
+            )
+        
+        # Apply TTS settings
+        configure_tts(rate=speech_rate, volume=volume)
+        
+        # Show current TTS status
+        if is_speaking():
+            st.sidebar.success("🔊 Currently speaking...")
     
     st.sidebar.markdown("---")
     
@@ -124,13 +183,52 @@ def main():
         if st.session_state.get('test_started', False):
             st.markdown("---")
             
-            # Question display area
+            # Question display area with TTS
             st.subheader("📝 Speaking Prompt")
             question_placeholder = st.container()
             with question_placeholder:
-                # TODO: Replace with actual question retrieval
+                # Get current question
                 question = get_question_by_level(cefr_level)
+                
+                # Check if question changed (for auto-play)
+                question_changed = question != st.session_state.current_question
+                if question_changed:
+                    st.session_state.current_question = question
+                
+                # Display question
                 st.info(question)
+                
+                # TTS Controls
+                if st.session_state.tts_enabled:
+                    col_tts1, col_tts2, col_tts3, col_tts4 = st.columns([1, 1, 1, 2])
+                    
+                    with col_tts1:
+                        if st.button("▶️ Play", help="Read the question aloud"):
+                            speak(question, async_playback=True)
+                    
+                    with col_tts2:
+                        if st.button("⏹️ Stop", help="Stop audio playback"):
+                            stop_speaking()
+                    
+                    with col_tts3:
+                        # TTS Status indicator
+                        if is_speaking():
+                            st.success("🔊 Playing")
+                        else:
+                            st.empty()
+                    
+                    with col_tts4:
+                        # Auto-play indicator
+                        if st.session_state.auto_play_question:
+                            st.caption("🔄 Auto-play enabled")
+                
+                # Auto-play functionality
+                if (st.session_state.tts_enabled and 
+                    st.session_state.auto_play_question and 
+                    question_changed and 
+                    question.strip()):
+                    # Auto-play the question when it first appears
+                    speak(question, async_playback=True)
             
             # Recording area
             st.subheader("🎙️ Record Your Response")
