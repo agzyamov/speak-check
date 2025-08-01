@@ -16,7 +16,7 @@ fi
 
 # Activate virtual environment and start server
 echo "🔧 Activating virtual environment and starting server..."
-./venv/bin/Activate.ps1 && python -m streamlit run app.py --server.port 8501 --server.headless true
+source venv/bin/activate && python -m streamlit run app.py --server.port 8501 --server.headless true
 
 echo ""
 echo "🎉 Server started successfully!"
