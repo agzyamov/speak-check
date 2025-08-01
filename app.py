@@ -25,6 +25,14 @@ def main():
         layout="wide"
     )
     
+    # Initialize session state
+    if 'test_started' not in st.session_state:
+        st.session_state.test_started = False
+    if 'current_level' not in st.session_state:
+        st.session_state.current_level = "B1"
+    if 'test_session_id' not in st.session_state:
+        st.session_state.test_session_id = None
+    
     # Header
     st.title("🎤 CEFR Speaking Exam Simulator")
     st.markdown("Practice your English speaking skills with AI-powered CEFR level assessment")
@@ -32,16 +40,44 @@ def main():
     # Sidebar configuration
     st.sidebar.header("Exam Settings")
     
-    # CEFR level selection
-    cefr_level = st.sidebar.selectbox(
-        "Select CEFR Level:",
-        options=["A2", "B1", "B2", "C1"],
-        index=1,  # Default to B1
+    # CEFR level selection with descriptions
+    level_options = {
+        "A2": "A2 - Elementary",
+        "B1": "B1 - Intermediate", 
+        "B2": "B2 - Upper-Intermediate",
+        "C1": "C1 - Advanced"
+    }
+    
+    selected_level_display = st.sidebar.selectbox(
+        "🎯 Select CEFR Level:",
+        options=list(level_options.values()),
+        index=list(level_options.keys()).index(st.session_state.current_level),
         help="Choose your target CEFR level for the speaking exam"
     )
     
+    # Extract the level code (A2, B1, etc.) from the display text
+    cefr_level = selected_level_display.split(" - ")[0]
+    
+    # Update session state if level changed
+    if cefr_level != st.session_state.current_level:
+        st.session_state.current_level = cefr_level
+        # Reset test if level changed during active test
+        if st.session_state.test_started:
+            st.session_state.test_started = False
+            st.rerun()
+    
+    # Show current test status in sidebar
+    if st.session_state.test_started:
+        st.sidebar.success(f"🎤 **Test Active**")
+        st.sidebar.write(f"**Session ID:** {st.session_state.test_session_id}")
+    else:
+        st.sidebar.info("⏳ **Test Not Started**")
+        st.sidebar.write("Select a level and click 'Start Speaking Test' to begin")
+    
+    st.sidebar.markdown("---")
+    
     # TODO: Add exam type selection (monologue, dialogue, etc.)
-    # TODO: Add difficulty settings within each level
+    # TODO: Add difficulty settings within each level  
     # TODO: Add time limit configuration
     
     # Main content area
@@ -50,11 +86,39 @@ def main():
     with col1:
         st.header(f"Speaking Test - Level {cefr_level}")
         
-        # Start test button
-        if st.button("🎯 Start Speaking Test", type="primary", use_container_width=True):
-            st.session_state.test_started = True
-            st.session_state.current_level = cefr_level
-            st.rerun()
+        # Test control buttons
+        if not st.session_state.test_started:
+            # Show start button when test not active
+            col_btn1, col_btn2 = st.columns([3, 1])
+            with col_btn1:
+                if st.button("🎯 Start Speaking Test", type="primary", use_container_width=True):
+                    st.session_state.test_started = True
+                    st.session_state.current_level = cefr_level
+                    # Add new session to session_history
+                    st.session_state.session_history.append({
+                        "level": cefr_level,
+                        "started_at": st.session_state.get("test_started_time", None)  # Optional: add timestamp if available
+                    })
+                    st.session_state.test_session_id = f"session_{cefr_level}_{len(st.session_state.session_history)}"
+                    st.success(f"✅ Test started for level {cefr_level}!")
+                    st.rerun()
+            with col_btn2:
+                st.info(f"Level: **{cefr_level}**")
+        else:
+            # Show test controls when test is active
+            col_btn1, col_btn2, col_btn3 = st.columns([2, 2, 1])
+            with col_btn1:
+                st.success(f"🎤 **Active Test - Level {cefr_level}**")
+            with col_btn2:
+                if st.button("🔄 New Question", use_container_width=True):
+                    # Force regeneration of question by rerunning the app
+                    st.rerun()
+            with col_btn3:
+                if st.button("❌ End Test", type="secondary"):
+                    st.session_state.test_started = False
+                    st.session_state.test_session_id = None
+                    st.info("Test ended. Click 'Start Speaking Test' to begin again.")
+                    st.rerun()
         
         # Test area
         if st.session_state.get('test_started', False):
@@ -108,6 +172,7 @@ def main():
         
         # Current session stats
         st.metric("Current Level", cefr_level)
+        st.metric("Test Status", "Active" if st.session_state.test_started else "Inactive")
         st.metric("Questions Completed", "0")  # TODO: Track from session state
         st.metric("Average Score", "N/A")  # TODO: Calculate from history
         
@@ -126,20 +191,18 @@ def main():
         
         for level, description in cefr_info.items():
             if level == cefr_level:
-                st.success(f"**{level}**: {description}")
+                st.success(f"**{level}**: {description} ⭐")
             else:
                 st.text(f"{level}: {description}")
+        
+        if st.session_state.test_started:
+            st.info(f"🎯 **Currently testing at {cefr_level} level**")
+        else:
+            st.warning("💡 **Tip**: Choose your level and start the test!")
     
     # Footer
     st.markdown("---")
-    st.markdown(
-        """
-        <div style='text-align: center'>
-            <small>CEFR Speaking Exam Simulator | Practice makes perfect! 🎯</small>
-        </div>
-        """, 
-        unsafe_allow_html=True
-    )
+    st.markdown("**CEFR Speaking Exam Simulator** | Practice makes perfect!")
 
 if __name__ == "__main__":
     main()
