@@ -331,33 +331,31 @@ class TTSManager:
                     communicate = edge_tts.Communicate(text, voice_id)
                     await communicate.save(temp_path)
                 
-                # Run async function
-                if asyncio.get_event_loop().is_running():
-                    # If we're in an async context, create new loop
-                    import threading
-                    result = [None]
-                    exception = [None]
-                    
-                    def run_in_thread():
+                # Run async function - always use threading for Streamlit compatibility
+                import threading
+                result = [None]
+                exception = [None]
+                
+                def run_in_thread():
+                    try:
+                        new_loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(new_loop)
+                        new_loop.run_until_complete(generate_speech())
+                        result[0] = True
+                    except Exception as e:
+                        exception[0] = e
+                    finally:
                         try:
-                            new_loop = asyncio.new_event_loop()
-                            asyncio.set_event_loop(new_loop)
-                            new_loop.run_until_complete(generate_speech())
-                            result[0] = True
-                        except Exception as e:
-                            exception[0] = e
-                        finally:
                             new_loop.close()
-                    
-                    thread = threading.Thread(target=run_in_thread)
-                    thread.start()
-                    thread.join()
-                    
-                    if exception[0]:
-                        raise exception[0]
-                else:
-                    # Normal async execution
-                    asyncio.run(generate_speech())
+                        except:
+                            pass
+                
+                thread = threading.Thread(target=run_in_thread)
+                thread.start()
+                thread.join()
+                
+                if exception[0]:
+                    raise exception[0]
                 
                 # Play the generated audio file
                 if os.path.exists(temp_path) and os.path.getsize(temp_path) > 0:
