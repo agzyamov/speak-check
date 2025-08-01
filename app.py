@@ -6,10 +6,12 @@ It provides a web interface for users to practice speaking tests at different CE
 """
 
 import streamlit as st
+import os
 from questions import get_question_by_level
 from transcribe import transcribe_audio
 from evaluate import evaluate_speaking_response
 from tts import speak, stop_speaking, is_speaking, get_available_voices, configure_tts
+from recording import start_recording, stop_recording, play_recording, is_recording, get_recording_state, get_recording_info
 
 # TODO: Add session state management for exam progress
 # TODO: Implement audio recording functionality
@@ -41,6 +43,12 @@ def main():
         st.session_state.auto_play_question = True
     if 'session_history' not in st.session_state:
         st.session_state.session_history = []
+    if 'recording_active' not in st.session_state:
+        st.session_state.recording_active = False
+    if 'current_recording_file' not in st.session_state:
+        st.session_state.current_recording_file = None
+    if 'recording_duration' not in st.session_state:
+        st.session_state.recording_duration = 0
     
     # Header
     st.title("🎤 CEFR Speaking Exam Simulator")
@@ -276,17 +284,74 @@ def main():
             st.subheader("🎙️ Record Your Response")
             recording_placeholder = st.container()
             with recording_placeholder:
-                # TODO: Implement audio recording widget
-                st.warning("Audio recording not implemented yet")
+                # Recording status
+                recording_state = get_recording_state()
+                if st.session_state.recording_active:
+                    st.success(f"🔴 Recording... ({st.session_state.recording_duration:.1f}s)")
+                else:
+                    st.info("⏸️ Ready to record")
                 
-                # Placeholder for recording controls
-                col_rec1, col_rec2, col_rec3 = st.columns(3)
+                # Recording controls
+                col_rec1, col_rec2, col_rec3, col_rec4 = st.columns([1, 1, 1, 2])
+                
                 with col_rec1:
-                    st.button("🔴 Start Recording", disabled=True)
+                    if st.button("🔴 Start Recording", 
+                                disabled=st.session_state.recording_active,
+                                help="Start recording your spoken response"):
+                        if start_recording(session_id=st.session_state.test_session_id):
+                            st.session_state.recording_active = True
+                            st.session_state.recording_duration = 0
+                            st.success("🎙️ Recording started!")
+                            st.rerun()
+                        else:
+                            st.error("❌ Failed to start recording")
+                
                 with col_rec2:
-                    st.button("⏹️ Stop Recording", disabled=True)
+                    if st.button("⏹️ Stop Recording", 
+                                disabled=not st.session_state.recording_active,
+                                help="Stop recording and save audio"):
+                        recording_file = stop_recording()
+                        if recording_file:
+                            st.session_state.recording_active = False
+                            st.session_state.current_recording_file = recording_file
+                            st.success(f"✅ Recording saved: {os.path.basename(recording_file)}")
+                            st.rerun()
+                        else:
+                            st.error("❌ Failed to stop recording")
+                
                 with col_rec3:
-                    st.button("▶️ Play Recording", disabled=True)
+                    if st.button("▶️ Play Recording", 
+                                disabled=not st.session_state.current_recording_file,
+                                help="Play back your recorded response"):
+                        if play_recording(st.session_state.current_recording_file):
+                            st.success("🔊 Playing recording...")
+                        else:
+                            st.error("❌ Failed to play recording")
+                
+                with col_rec4:
+                    # Recording info
+                    if st.session_state.current_recording_file:
+                        recording_info = get_recording_info(st.session_state.test_session_id)
+                        st.caption(f"📁 {recording_info['total_recordings']} recording(s) in session")
+                
+                # Recording progress (if active)
+                if st.session_state.recording_active:
+                    # Simple progress indicator
+                    progress_bar = st.progress(0)
+                    progress_text = st.empty()
+                    
+                    # Update progress (this is a simplified version)
+                    import time
+                    start_time = time.time()
+                    while st.session_state.recording_active:
+                        elapsed = time.time() - start_time
+                        progress = min(elapsed / 120.0, 1.0)  # 2 minutes max
+                        progress_bar.progress(progress)
+                        progress_text.text(f"Recording: {elapsed:.1f}s / 120s")
+                        time.sleep(0.1)
+                        
+                        if not st.session_state.recording_active:
+                            break
             
             # Transcript display area
             st.subheader("📄 Speech Transcript")

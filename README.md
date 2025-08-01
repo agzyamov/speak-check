@@ -28,17 +28,24 @@ git clone <repository-url>
 cd speak-check
 ```
 
-2. Install dependencies:
+2. Create and activate virtual environment:
+```bash
+python -m venv venv
+./venv/bin/Activate.ps1  # On Windows PowerShell
+# or source venv/bin/activate  # On Unix/macOS bash
+```
+
+3. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Run the application:
+4. **Start the server (Tremlett command):**
 ```bash
-streamlit run app.py
+./venv/bin/Activate.ps1 && python -m streamlit run app.py --server.port 8501 --server.headless true
 ```
 
-4. Open your browser and navigate to `http://localhost:8501`
+5. Open your browser and navigate to `http://localhost:8501`
 
 ### How to Use
 
@@ -54,9 +61,13 @@ streamlit run app.py
 speak-check/
 ├── app.py              # Main Streamlit application entry point
 ├── questions.py        # CEFR-level speaking prompts and question management
+├── tts.py              # Text-to-Speech functionality (Microsoft Edge TTS)
+├── recording.py        # Voice recording functionality (PyAudio)
 ├── transcribe.py       # Speech-to-text functionality using Whisper
 ├── evaluate.py         # AI-based CEFR scoring and evaluation
+├── test_recording.py   # Voice recording test script
 ├── requirements.txt    # Python dependencies
+├── TECH_PRACTICES.md   # Technical practices and conventions
 └── README.md          # Project documentation
 ```
 
@@ -77,6 +88,23 @@ Manages speaking prompts organized by CEFR levels:
 - Question metadata and categorization
 - Extensible structure for adding new prompts
 
+#### `tts.py`
+Text-to-Speech functionality with premium voice quality:
+- Microsoft Edge TTS integration (8 high-quality neural voices)
+- Thread-safe async operations for Streamlit compatibility
+- Voice selection, speed, and volume controls
+- Graceful fallback chain (Edge TTS → pyttsx3 → gTTS → System)
+- Temporary file management with automatic cleanup
+
+#### `recording.py`
+Professional voice recording capabilities:
+- PyAudio integration for cross-platform audio capture
+- Multiple quality settings (Low/Medium/High)
+- Session-based recording management
+- Audio playback functionality
+- Thread-safe operations with progress tracking
+- WAV file generation with configurable parameters
+
 #### `transcribe.py`
 Handles speech-to-text conversion:
 - Audio recording from microphone
@@ -95,24 +123,27 @@ Provides AI-powered CEFR evaluation:
 
 ## 🛠️ Current Status
 
-**⚠️ This is a scaffold implementation - core functionality is not yet implemented.**
+**🎉 Core functionality implemented - Full speaking exam simulation available!**
 
-### Implemented Features
-- ✅ Basic Streamlit interface structure
-- ✅ CEFR level selection
-- ✅ Question database with sample prompts
-- ✅ Placeholder UI components
-- ✅ Modular architecture
+### ✅ Implemented Features
+- ✅ **Complete Streamlit interface** with modern UI design
+- ✅ **CEFR level selection** (A2, B1, B2, C1) with descriptions
+- ✅ **Premium Text-to-Speech** using Microsoft Edge TTS (8 high-quality voices)
+- ✅ **Voice Recording** with PyAudio integration (up to 2 minutes)
+- ✅ **Audio Playback** of recorded responses
+- ✅ **Session Management** with unique session IDs
+- ✅ **Question Database** with level-appropriate prompts
+- ✅ **Real-time Status** indicators and progress tracking
+- ✅ **Audio Quality Controls** (speed, volume, voice selection)
+- ✅ **Thread-safe Operations** with robust error handling
+- ✅ **Modular Architecture** with clean separation of concerns
 
-### TODO: Core Features to Implement
-- 🔄 Audio recording functionality
-- 🔄 Whisper integration for speech-to-text
-- 🔄 AI evaluation using language models (OpenAI/Claude)
-- 🔄 Real-time transcription display
-- 🔄 Scoring algorithm implementation
-- 🔄 Session state management
-- 🔄 Progress tracking and history
-- 🔄 Audio preprocessing and enhancement
+### 🔄 TODO: Advanced Features to Implement
+- 🔄 **Whisper integration** for speech-to-text transcription
+- 🔄 **AI evaluation** using language models (OpenAI/Claude)
+- 🔄 **CEFR scoring algorithm** with detailed feedback
+- 🔄 **Pronunciation analysis** and fluency assessment
+- 🔄 **Recording history** and progress analytics
 
 ### TODO: Advanced Features
 - 🔄 Pronunciation analysis
@@ -149,8 +180,11 @@ Provides AI-powered CEFR evaluation:
 
 ### Dependencies
 - **Streamlit**: Web interface framework
-- **OpenAI Whisper**: Speech recognition engine
-- **Pandas/NumPy**: Data processing
+- **Microsoft Edge TTS**: Premium text-to-speech synthesis
+- **PyAudio**: Cross-platform audio recording and playback
+- **NumPy**: Audio processing and data manipulation
+- **Pygame**: Audio file playback for TTS
+- **OpenAI Whisper**: Speech recognition engine (planned)
 - **SpaCy/NLTK**: Natural language processing (planned)
 - **OpenAI/Anthropic APIs**: AI evaluation (planned)
 
