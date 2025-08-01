@@ -7,6 +7,12 @@ streamlit>=1.28.0
 openai-whisper>=20231117
 # Alternative: speech_recognition>=3.10.0
 
+# Text-to-Speech
+pyttsx3>=2.90  # Cross-platform TTS engine
+gtts>=2.4.0  # Google Text-to-Speech (optional)
+pygame>=2.5.0  # Audio playback for gTTS
+edge-tts>=6.1.0  # Microsoft Edge TTS (high quality)
+
 # Audio file handling and processing
 # librosa>=0.10.1
 # soundfile>=0.12.1
