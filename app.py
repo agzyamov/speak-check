@@ -94,7 +94,12 @@ def main():
                 if st.button("🎯 Start Speaking Test", type="primary", use_container_width=True):
                     st.session_state.test_started = True
                     st.session_state.current_level = cefr_level
-                    st.session_state.test_session_id = f"session_{cefr_level}_{len(st.session_state.get('session_history', []))}"
+                    # Add new session to session_history
+                    st.session_state.session_history.append({
+                        "level": cefr_level,
+                        "started_at": st.session_state.get("test_started_time", None)  # Optional: add timestamp if available
+                    })
+                    st.session_state.test_session_id = f"session_{cefr_level}_{len(st.session_state.session_history)}"
                     st.success(f"✅ Test started for level {cefr_level}!")
                     st.rerun()
             with col_btn2:
