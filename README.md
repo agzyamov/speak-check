@@ -214,3 +214,29 @@ For questions, issues, or feature requests, please [create an issue](../../issue
 ---
 
 **Note**: This application is designed for educational purposes and speaking practice. It does not replace official CEFR certification exams.
+
+## 🗣️ Speech-to-Text (Whisper)
+
+- The app now supports offline speech transcription using OpenAI Whisper.
+- First run will download the selected model (default: `base`). For faster tests, choose `tiny`.
+- Requirements:
+  - `openai-whisper` (installed via `requirements.txt`)
+  - `ffmpeg` available in your OS PATH
+
+### Installing ffmpeg
+
+- macOS: `brew install ffmpeg`
+- Ubuntu/Debian: `sudo apt-get update && sudo apt-get install -y ffmpeg`
+- Windows (choco): `choco install ffmpeg`
+
+### How to Use in the App
+
+1. Record your response using the recording controls.
+2. In the "Speech Transcript" section, pick the language and model.
+3. Click "Transcribe Recording". The transcript will appear in the text area.
+
+### Notes
+
+- Whisper confidence scores are not provided; `confidence` is shown as `None`.
+- CPU mode is used by default (fp16 disabled). GPU will be used automatically by Whisper if available.
+- Supported formats include `.wav`, `.mp3`, `.m4a`, `.ogg`, `.flac`, `.webm`, `.aac`.
