@@ -119,6 +119,7 @@ def main():
         # Voice selection
         from tts import get_available_voices
         voices = get_available_voices()
+        selected_voice_idx = None  # ensure defined for linters
         if voices:
             voice_names = [f"{voice['name']}" for voice in voices]
             selected_voice_idx = st.sidebar.selectbox(
@@ -151,7 +152,7 @@ def main():
             )
         
         # Apply TTS settings
-        if voices:
+        if voices and selected_voice_idx is not None:
             configure_tts(rate=speech_rate, volume=volume, voice_index=selected_voice_idx)
         else:
             configure_tts(rate=speech_rate, volume=volume)
