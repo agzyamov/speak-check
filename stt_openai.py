@@ -9,6 +9,10 @@ import os
 import logging
 from typing import Dict, Any, Optional, List
 from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables from .env if present
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
