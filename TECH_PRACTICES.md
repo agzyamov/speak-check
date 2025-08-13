@@ -20,7 +20,7 @@
 
 **Tech Stack:**
 - **Frontend**: Streamlit (Python web framework)
-- **Backend**: Python modules (questions, transcribe, evaluate)
+- **Backend**: Python modules (questions, evaluate)
 - **Environment**: Python 3.13 + Virtual Environment
 - **IDE**: VS Code with Python/Pylance extensions
 - **Version Control**: Git with feature branch workflow
@@ -121,7 +121,6 @@ import pandas as pd
 
 # Local application imports
 from questions import get_question_by_level
-from transcribe import transcribe_audio
 ```
 
 ---
@@ -132,7 +131,6 @@ from transcribe import transcribe_audio
 speak-check/
 ├── app.py                  # Main Streamlit application
 ├── questions.py            # Question management & CEFR prompts
-├── transcribe.py          # Speech-to-text functionality
 ├── evaluate.py            # AI-based CEFR evaluation
 ├── requirements.txt       # Python dependencies
 ├── README.md             # Project documentation
@@ -146,7 +144,7 @@ speak-check/
 ### **Module Responsibilities**
 - **`app.py`**: UI layer, session state, Streamlit components
 - **`questions.py`**: Question database, CEFR-level content management
-- **`transcribe.py`**: Audio processing, speech recognition, Whisper integration
+<!-- STT module removed -->
 - **`evaluate.py`**: Language assessment, CEFR scoring, AI evaluation
 
 ---
@@ -314,7 +312,6 @@ pandas>=2.1.0
 numpy>=2.3.0
 
 # Audio Processing (Future)
-# openai-whisper>=20231117
 # pyaudio>=0.2.11
 
 # Development

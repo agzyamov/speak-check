@@ -63,7 +63,7 @@ speak-check/
 ├── questions.py        # CEFR-level speaking prompts and question management
 ├── tts.py              # Text-to-Speech functionality (Microsoft Edge TTS)
 ├── recording.py        # Voice recording functionality (PyAudio)
-├── transcribe.py       # Speech-to-text functionality using Whisper
+├── evaluate.py         # AI-based CEFR scoring and evaluation
 ├── evaluate.py         # AI-based CEFR scoring and evaluation
 ├── test_recording.py   # Voice recording test script
 ├── requirements.txt    # Python dependencies
@@ -105,13 +105,13 @@ Professional voice recording capabilities:
 - Thread-safe operations with progress tracking
 - WAV file generation with configurable parameters
 
-#### `transcribe.py`
-Handles speech-to-text conversion:
-- Audio recording from microphone
-- Integration with OpenAI Whisper for transcription
-- Audio preprocessing and quality enhancement
-- Support for multiple audio formats
-- Real-time transcription capabilities
+#### `evaluate.py`
+Provides AI-powered CEFR evaluation:
+ - Multi-criteria assessment (fluency, accuracy, lexical range, etc.)
+ - CEFR level prediction based on linguistic analysis
+ - Detailed feedback generation
+ - Personalized improvement recommendations
+ - Benchmark comparison against CEFR standards
 
 #### `evaluate.py`
 Provides AI-powered CEFR evaluation:
@@ -139,7 +139,6 @@ Provides AI-powered CEFR evaluation:
 - ✅ **Modular Architecture** with clean separation of concerns
 
 ### 🔄 TODO: Advanced Features to Implement
-- 🔄 **Whisper integration** for speech-to-text transcription
 - 🔄 **AI evaluation** using language models (OpenAI/Claude)
 - 🔄 **CEFR scoring algorithm** with detailed feedback
 - 🔄 **Pronunciation analysis** and fluency assessment
@@ -184,7 +183,6 @@ Provides AI-powered CEFR evaluation:
 - **PyAudio**: Cross-platform audio recording and playback
 - **NumPy**: Audio processing and data manipulation
 - **Pygame**: Audio file playback for TTS
-- **OpenAI Whisper**: Speech recognition engine (planned)
 - **SpaCy/NLTK**: Natural language processing (planned)
 - **OpenAI/Anthropic APIs**: AI evaluation (planned)
 
@@ -215,28 +213,5 @@ For questions, issues, or feature requests, please [create an issue](../../issue
 
 **Note**: This application is designed for educational purposes and speaking practice. It does not replace official CEFR certification exams.
 
-## 🗣️ Speech-to-Text (Whisper)
-
-- The app now supports offline speech transcription using OpenAI Whisper.
-- First run will download the selected model (default: `base`). For faster tests, choose `tiny`.
-- Requirements:
-  - `openai-whisper` (installed via `requirements.txt`)
-  - `ffmpeg` available in your OS PATH
-
-### Installing ffmpeg
-
-- macOS: `brew install ffmpeg`
-- Ubuntu/Debian: `sudo apt-get update && sudo apt-get install -y ffmpeg`
-- Windows (choco): `choco install ffmpeg`
-
-### How to Use in the App
-
-1. Record your response using the recording controls.
-2. In the "Speech Transcript" section, pick the language and model.
-3. Click "Transcribe Recording". The transcript will appear in the text area.
-
-### Notes
-
-- Whisper confidence scores are not provided; `confidence` is shown as `None`.
-- CPU mode is used by default (fp16 disabled). GPU will be used automatically by Whisper if available.
+<!-- STT section removed -->
 - Supported formats include `.wav`, `.mp3`, `.m4a`, `.ogg`, `.flac`, `.webm`, `.aac`.
