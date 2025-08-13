@@ -47,5 +47,8 @@ numpy>=1.24.0
 # flake8>=6.0.0
 # mypy>=1.5.0
 
+# Env loader
+python-dotenv>=1.0.1
+
 # Note: Some packages are commented out as placeholders
 # Uncomment and install as needed during development
