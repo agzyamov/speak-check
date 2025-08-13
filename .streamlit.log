@@ -1,0 +1,22 @@
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://192.168.1.9:8501
+  External URL: http://176.233.28.172:8501
+
+  For better performance, install the Watchdog module:
+
+  $ xcode-select --install
+  $ pip install watchdog
+            
+/Users/rustemagziamov/speak-check/venv/lib/python3.13/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+INFO:tts:Using Edge TTS engine (highest quality)
+INFO:recording:PyAudio initialized successfully
+INFO:recording:Started recording session: session_B1_1
+INFO:recording:Audio stream opened, starting recording...
+INFO:recording:Recording thread finished. Captured 185 frames.
+INFO:recording:Audio saved to: /var/folders/t6/33c3gn817xj5s2prvyqyx9wc0000gn/T/tmpczb4nzd9.wav
+INFO:recording:Recording saved: /var/folders/t6/33c3gn817xj5s2prvyqyx9wc0000gn/T/tmpczb4nzd9.wav (duration: 4.30s)
+INFO:recording:Playback completed: /var/folders/t6/33c3gn817xj5s2prvyqyx9wc0000gn/T/tmpczb4nzd9.wav

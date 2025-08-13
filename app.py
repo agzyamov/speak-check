@@ -11,6 +11,7 @@ from questions import get_question_by_level
 from evaluate import evaluate_speaking_response
 from tts import speak, stop_speaking, is_speaking, get_available_voices, configure_tts
 from recording import start_recording, stop_recording, play_recording, is_recording, get_recording_state, get_recording_info
+from stt_openai import transcribe_audio_file, get_supported_languages, is_available as stt_available
 
 # TODO: Add session state management for exam progress
 # TODO: Implement audio recording functionality
@@ -48,6 +49,10 @@ def main():
         st.session_state.current_recording_file = None
     if 'recording_duration' not in st.session_state:
         st.session_state.recording_duration = 0
+    if 'stt_enabled' not in st.session_state:
+        st.session_state.stt_enabled = False
+    if 'latest_transcript_text' not in st.session_state:
+        st.session_state.latest_transcript_text = ""
     
     # Header
     st.title("🎤 CEFR Speaking Exam Simulator")
@@ -158,6 +163,25 @@ def main():
         # Show current TTS status
         if is_speaking():
             st.sidebar.success("🔊 Currently speaking...")
+    
+    st.sidebar.markdown("---")
+    
+    # STT Settings
+    st.sidebar.subheader("📝 Speech-to-Text")
+    
+    # Check if STT is available
+    if stt_available():
+        stt_enabled = st.sidebar.checkbox(
+            "Enable Speech-to-Text",
+            value=st.session_state.stt_enabled,
+            help="Enable OpenAI Whisper API transcription of recordings"
+        )
+        if stt_enabled != st.session_state.stt_enabled:
+            st.session_state.stt_enabled = stt_enabled
+    else:
+        st.sidebar.warning("⚠️ STT not available")
+        st.sidebar.info("Set OPENAI_API_KEY environment variable to enable transcription")
+        st.session_state.stt_enabled = False
     
     st.sidebar.markdown("---")
     
@@ -353,7 +377,72 @@ def main():
                         if not st.session_state.recording_active:
                             break
             
-            # Transcript feature removed
+            # Transcript section
+            if st.session_state.stt_enabled:
+                st.subheader("📄 Speech Transcript")
+                transcript_placeholder = st.container()
+                with transcript_placeholder:
+                    # Controls for transcription
+                    col_tr1, col_tr2, col_tr3 = st.columns([1, 1, 2])
+                    with col_tr1:
+                        lang_codes = get_supported_languages()
+                        selected_lang = st.selectbox(
+                            "Language",
+                            options=lang_codes,
+                            index=lang_codes.index("en") if "en" in lang_codes else 0,
+                            help="Language hint for transcription",
+                            key="transcribe_lang",
+                        )
+                    with col_tr2:
+                        model_choice = st.selectbox(
+                            "Model",
+                            options=["whisper-1"],
+                            index=0,
+                            help="OpenAI Whisper model",
+                            key="transcribe_model",
+                        )
+                    with col_tr3:
+                        do_transcribe = st.button(
+                            "📝 Transcribe Recording",
+                            disabled=not st.session_state.current_recording_file,
+                            help="Run OpenAI Whisper transcription on the latest recording",
+                        )
+
+                    # Transcript area
+                    transcript_text = st.session_state.get("latest_transcript_text", "")
+                    st.text_area(
+                        "Your speech will be transcribed here...",
+                        value=transcript_text,
+                        height=180,
+                        disabled=True,
+                        key="transcript_display",
+                    )
+
+                    # Run transcription when requested
+                    if do_transcribe and st.session_state.current_recording_file:
+                        with st.spinner("Transcribing with OpenAI Whisper..."):
+                            try:
+                                result = transcribe_audio_file(
+                                    st.session_state.current_recording_file,
+                                    language=selected_lang,
+                                    model=model_choice,
+                                )
+                                if result.get("status") == "ok" and result.get("text"):
+                                    st.session_state.latest_transcript_text = result["text"].strip()
+                                    st.success(
+                                        f"✅ Transcribed ({result.get('language', selected_lang)} | {result.get('provider', 'OpenAI')})"
+                                    )
+                                    # Show brief metadata
+                                    meta = st.columns(3)
+                                    meta[0].metric("Duration", f"{result.get('duration', 0.0):.1f}s")
+                                    meta[1].metric("Segments", f"{len(result.get('segments', []))}")
+                                    meta[2].metric("Provider", result.get("provider", "OpenAI"))
+                                    st.rerun()
+                                else:
+                                    err = result.get("error") or "No text returned"
+                                    st.error(f"❌ Transcription failed: {err}")
+                            except Exception as e:
+                                st.error(f"❌ OpenAI Whisper error: {e}")
             
             # Evaluation area
             st.subheader("🤖 AI Feedback")
