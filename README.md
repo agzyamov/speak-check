@@ -63,6 +63,7 @@ speak-check/
 ├── questions.py        # CEFR-level speaking prompts and question management
 ├── tts.py              # Text-to-Speech functionality (Microsoft Edge TTS)
 ├── recording.py        # Voice recording functionality (PyAudio)
+├── stt_openai.py       # Speech-to-text functionality (OpenAI Whisper API)
 ├── evaluate.py         # AI-based CEFR scoring and evaluation
 ├── evaluate.py         # AI-based CEFR scoring and evaluation
 ├── test_recording.py   # Voice recording test script
@@ -105,6 +106,15 @@ Professional voice recording capabilities:
 - Thread-safe operations with progress tracking
 - WAV file generation with configurable parameters
 
+#### `stt_openai.py`
+Handles speech-to-text conversion using OpenAI Whisper API:
+- Managed transcription service (no local model downloads)
+- Support for multiple audio formats (WAV, MP3, M4A, etc.)
+- Language detection and selection
+- High accuracy transcription with confidence scoring
+- Cloud-based processing for scalability
+- Automatic error handling and retry logic
+
 #### `evaluate.py`
 Provides AI-powered CEFR evaluation:
  - Multi-criteria assessment (fluency, accuracy, lexical range, etc.)
@@ -131,6 +141,7 @@ Provides AI-powered CEFR evaluation:
 - ✅ **Premium Text-to-Speech** using Microsoft Edge TTS (8 high-quality voices)
 - ✅ **Voice Recording** with PyAudio integration (up to 2 minutes)
 - ✅ **Audio Playback** of recorded responses
+- ✅ **Speech-to-Text** using OpenAI Whisper API (managed service)
 - ✅ **Session Management** with unique session IDs
 - ✅ **Question Database** with level-appropriate prompts
 - ✅ **Real-time Status** indicators and progress tracking
@@ -183,6 +194,7 @@ Provides AI-powered CEFR evaluation:
 - **PyAudio**: Cross-platform audio recording and playback
 - **NumPy**: Audio processing and data manipulation
 - **Pygame**: Audio file playback for TTS
+- **OpenAI**: Whisper API for speech-to-text transcription
 - **SpaCy/NLTK**: Natural language processing (planned)
 - **OpenAI/Anthropic APIs**: AI evaluation (planned)
 
@@ -213,5 +225,30 @@ For questions, issues, or feature requests, please [create an issue](../../issue
 
 **Note**: This application is designed for educational purposes and speaking practice. It does not replace official CEFR certification exams.
 
-<!-- STT section removed -->
-- Supported formats include `.wav`, `.mp3`, `.m4a`, `.ogg`, `.flac`, `.webm`, `.aac`.
+## 🗣️ Speech-to-Text (OpenAI Whisper API)
+
+The app now supports managed speech transcription using OpenAI's Whisper API:
+
+### Setup Requirements
+- **OpenAI API Key**: Set the `OPENAI_API_KEY` environment variable
+- **Internet Connection**: Required for API calls to OpenAI
+- **Audio Format**: Supports WAV, MP3, M4A, MPEG, MPGA, WebM (up to 25MB)
+
+### How to Use
+1. Set your OpenAI API key: `export OPENAI_API_KEY="your-api-key-here"`
+2. Enable "Speech-to-Text" in the sidebar settings
+3. Record your response using the recording controls
+4. Click "Transcribe Recording" to get your speech converted to text
+5. The transcript will appear in the text area with metadata
+
+### Features
+- **High Accuracy**: Uses OpenAI's latest Whisper model
+- **Language Support**: 99+ languages with automatic detection
+- **Cloud Processing**: No local model downloads or GPU requirements
+- **Error Handling**: Graceful fallbacks and user-friendly error messages
+- **Metadata**: Shows duration, segments, and detected language
+
+### Cost Considerations
+- OpenAI Whisper API charges per minute of audio processed
+- Current pricing: ~$0.006 per minute (very affordable for practice)
+- No charges for failed transcriptions or API errors
