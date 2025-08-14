@@ -619,13 +619,8 @@ def main():
                                     pass
                                 st.success("✅ Assessment completed!")
                                 st.rerun()
-                    
-                    # No evaluation yet
-                    else:
-                        if st.session_state.latest_transcript_text:
-                            st.info("Click 'Evaluate Response' to get AI feedback on your transcript")
-                        else:
-                            st.info("Complete a recording and transcription to enable evaluation")
+                            except Exception as e:
+                                st.error(f"❌ Assessment failed: {e}")
             else:
                 st.subheader("🤖 AI Feedback")
                 st.info("Enable 'AI Assessment' in the sidebar to get detailed feedback")
