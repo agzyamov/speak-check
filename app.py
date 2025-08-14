@@ -224,18 +224,35 @@ def main():
     
     # History - recent sessions
     with st.sidebar.expander("📜 History", expanded=False):
+        def render_local_history():
+            local = st.session_state.get("session_history", [])
+            if not local:
+                st.caption("No local sessions yet.")
+                return
+            for idx, sess in enumerate(reversed(local[-10:])):
+                label = f"{sess.get('level','?')} • local • {sess.get('started_at','')}"
+                if st.button(label, key=f"local_sess_{idx}"):
+                    st.session_state.test_session_id = sess.get("id") or f"local_{idx}"
+                    st.session_state.current_level = sess.get("level", st.session_state.current_level)
+                    st.session_state.test_started = False
+                    st.rerun()
         try:
             sessions = mongo_list_sessions(limit=10)
-            for s in sessions:
-                sid = str(s.get("_id"))
-                label = f"{s.get('level', '?')} • {s.get('status', '')} • {s.get('started_at', '')}"
-                if st.button(label, key=f"sess_{sid}"):
-                    st.session_state.test_session_id = sid
-                    st.session_state.current_level = s.get("level", st.session_state.current_level)
-                    st.session_state.test_started = s.get("status") == "active"
-                    st.rerun()
-        except Exception as _:
-            st.caption("History not available yet. Ensure MongoDB is running.")
+            if sessions:
+                for s in sessions:
+                    sid = str(s.get("_id"))
+                    label = f"{s.get('level', '?')} • {s.get('status', '')} • {s.get('started_at', '')}"
+                    if st.button(label, key=f"sess_{sid}"):
+                        st.session_state.test_session_id = sid
+                        st.session_state.current_level = s.get("level", st.session_state.current_level)
+                        st.session_state.test_started = s.get("status") == "active"
+                        st.rerun()
+            else:
+                st.caption("No DB sessions yet. Showing local history:")
+                render_local_history()
+        except Exception:
+            st.caption("History not available from DB. Showing local history:")
+            render_local_history()
 
     # Main content area
     col1, col2 = st.columns([2, 1])
