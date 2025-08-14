@@ -7,6 +7,9 @@ It provides a web interface for users to practice speaking tests at different CE
 
 import streamlit as st
 import os
+import json
+import random
+from pathlib import Path
 from questions import get_question_by_level
 from evaluate import evaluate_speaking_response
 from tts import speak, stop_speaking, is_speaking, get_available_voices, configure_tts
@@ -27,6 +30,39 @@ import db_mongo.client as mongo_client
 # TODO: Implement audio recording functionality
 # TODO: Add timer functionality for speaking responses
 # TODO: Implement progress tracking and session history
+
+
+@st.cache_data(ttl=60 * 60 * 24)
+def load_population_data() -> list[dict]:
+    p = Path("data/scraped/population.json")
+    if not p.exists():
+        return []
+    try:
+        data = json.loads(p.read_text())
+        # keep only valid rows with country and population
+        return [r for r in data if r.get("country") and isinstance(r.get("population"), int)]
+    except Exception:
+        return []
+
+
+def generate_population_prompt(level: str, data: list[dict]) -> str:
+    if not data:
+        return "Talk about population trends in your country."
+    # choose countries
+    pick = lambda: random.choice([r for r in data if r["country"].lower() not in {"world", "europe", "asia"}])
+    a = pick()
+    if level in {"A2", "B1"}:
+        return f"Describe life in {a['country']}. Mention how population size ({a['population']:,}) might affect daily life (transport, housing, jobs)."
+    # B2/C1 compare
+    b = pick()
+    tries = 0
+    while b["country"] == a["country"] and tries < 5:
+        b = pick(); tries += 1
+    return (
+        f"Compare {a['country']} (population {a['population']:,}) and {b['country']} (population {b['population']:,}). "
+        f"Discuss reasons for differences, and implications for economy, infrastructure, and environment."
+    )
+
 
 def main():
     """Main Streamlit application function."""
@@ -218,6 +254,18 @@ def main():
     
     st.sidebar.markdown("---")
     
+    # Data-driven prompts
+    st.sidebar.subheader("📊 Data-driven Prompts")
+    use_population_prompts = st.sidebar.checkbox(
+        "Use population dataset",
+        value=st.session_state.get("use_population_prompts", False),
+        help="Generate prompts from real population data (Wikipedia).",
+    )
+    st.session_state.use_population_prompts = use_population_prompts
+    if use_population_prompts:
+        data_status = "loaded" if load_population_data() else "missing"
+        st.sidebar.caption(f"Population data: {data_status}")
+    
     # TODO: Add exam type selection (monologue, dialogue, etc.)
     # TODO: Add difficulty settings within each level  
     # TODO: Add time limit configuration
@@ -292,6 +340,12 @@ def main():
             with col_btn2:
                 if st.button("🔄 New Question", use_container_width=True):
                     # Force regeneration of question by rerunning the app
+                    if st.session_state.get("use_population_prompts"):
+                        pop = load_population_data()
+                        st.session_state.current_question = generate_population_prompt(cefr_level, pop)
+                    else:
+                        # default path: just reset so a new random question will be generated below
+                        st.session_state.current_question = ""
                     st.rerun()
             with col_btn3:
                 if st.button("❌ End Test", type="secondary"):
@@ -315,7 +369,10 @@ def main():
             question_placeholder = st.container()
             with question_placeholder:
                 # Get current question
-                question = get_question_by_level(cefr_level)
+                if st.session_state.get("use_population_prompts"):
+                    question = generate_population_prompt(cefr_level, load_population_data())
+                else:
+                    question = get_question_by_level(cefr_level)
                 
                 # Check if question changed (for auto-play)
                 question_changed = question != st.session_state.current_question
