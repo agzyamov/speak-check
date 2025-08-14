@@ -598,7 +598,7 @@ def main():
                                     last_rec = recs[0] if recs else None
                                     if last_rec:
                                         # find transcript for last_rec (latest)
-                                        transcripts = list(db_mongo.client.db.transcripts.find({"recording_id": last_rec["_id"]}).sort("created_at", -1))  # noqa: E501
+                                        transcripts = list(mongo_client.db.transcripts.find({"recording_id": last_rec["_id"]}).sort("created_at", -1))  # noqa: E501
                                         last_tr = transcripts[0] if transcripts else None
                                         if last_tr:
                                             mongo_add_evaluation(
