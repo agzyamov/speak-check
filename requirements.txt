@@ -36,6 +36,7 @@ numpy>=1.24.0
 # Optional: Database support
 # sqlite3  # Built into Python
 # sqlalchemy>=2.0.0
+pymongo>=4.7.0
 
 # Optional: Advanced audio processing
 # webrtcvad>=2.0.10  # Voice activity detection
