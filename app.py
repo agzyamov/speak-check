@@ -12,6 +12,16 @@ from evaluate import evaluate_speaking_response
 from tts import speak, stop_speaking, is_speaking, get_available_voices, configure_tts
 from recording import start_recording, stop_recording, play_recording, is_recording, get_recording_state, get_recording_info
 from stt_openai import transcribe_audio_file, get_supported_languages, is_available as stt_available
+from db_mongo.crud import (
+    create_session as mongo_create_session,
+    end_session as mongo_end_session,
+    add_recording as mongo_add_recording,
+    add_transcript as mongo_add_transcript,
+    add_evaluation as mongo_add_evaluation,
+    list_sessions as mongo_list_sessions,
+    get_session_detail as mongo_get_session_detail,
+)
+import db_mongo.client as mongo_client
 
 # TODO: Add session state management for exam progress
 # TODO: Implement audio recording functionality
@@ -212,6 +222,21 @@ def main():
     # TODO: Add difficulty settings within each level  
     # TODO: Add time limit configuration
     
+    # History - recent sessions
+    with st.sidebar.expander("📜 History", expanded=False):
+        try:
+            sessions = mongo_list_sessions(limit=10)
+            for s in sessions:
+                sid = str(s.get("_id"))
+                label = f"{s.get('level', '?')} • {s.get('status', '')} • {s.get('started_at', '')}"
+                if st.button(label, key=f"sess_{sid}"):
+                    st.session_state.test_session_id = sid
+                    st.session_state.current_level = s.get("level", st.session_state.current_level)
+                    st.session_state.test_started = s.get("status") == "active"
+                    st.rerun()
+        except Exception as _:
+            st.caption("History not available yet. Ensure MongoDB is running.")
+
     # Main content area
     col1, col2 = st.columns([2, 1])
     
@@ -226,12 +251,17 @@ def main():
                 if st.button("🎯 Start Speaking Test", type="primary", use_container_width=True):
                     st.session_state.test_started = True
                     st.session_state.current_level = cefr_level
-                    # Add new session to session_history
+                    # Persist session in Mongo
+                    try:
+                        sid = mongo_create_session(level=cefr_level)
+                        st.session_state.test_session_id = sid
+                    except Exception as _:
+                        st.session_state.test_session_id = f"session_{cefr_level}_{len(st.session_state.session_history)+1}"
+                    # Add new session to session_history (UI only)
                     st.session_state.session_history.append({
                         "level": cefr_level,
-                        "started_at": st.session_state.get("test_started_time", None)  # Optional: add timestamp if available
+                        "started_at": st.session_state.get("test_started_time", None)
                     })
-                    st.session_state.test_session_id = f"session_{cefr_level}_{len(st.session_state.session_history)}"
                     st.success(f"✅ Test started for level {cefr_level}!")
                     st.rerun()
             with col_btn2:
@@ -247,6 +277,12 @@ def main():
                     st.rerun()
             with col_btn3:
                 if st.button("❌ End Test", type="secondary"):
+                    # Persist session end
+                    try:
+                        if st.session_state.test_session_id:
+                            mongo_end_session(st.session_state.test_session_id, status="completed")
+                    except Exception:
+                        pass
                     st.session_state.test_started = False
                     st.session_state.test_session_id = None
                     st.info("Test ended. Click 'Start Speaking Test' to begin again.")
@@ -361,6 +397,16 @@ def main():
                         if recording_file:
                             st.session_state.recording_active = False
                             st.session_state.current_recording_file = recording_file
+                            # Save recording metadata to Mongo
+                            try:
+                                if st.session_state.test_session_id:
+                                    mongo_add_recording(
+                                        session_id=st.session_state.test_session_id,
+                                        file_url=recording_file,
+                                        duration_s=st.session_state.get("recording_duration", None),
+                                    )
+                            except Exception:
+                                pass
                             st.success(f"✅ Recording saved: {os.path.basename(recording_file)}")
                             st.rerun()
                         else:
@@ -452,6 +498,22 @@ def main():
                                 )
                                 if result.get("status") == "ok" and result.get("text"):
                                     st.session_state.latest_transcript_text = result["text"].strip()
+                                    # Persist transcript to Mongo (attach to latest recording if any)
+                                    try:
+                                        detail = mongo_get_session_detail(st.session_state.test_session_id)
+                                        recs = detail.get("recordings", [])
+                                        last_rec = recs[0] if recs else None
+                                        if last_rec:
+                                            mongo_add_transcript(
+                                                recording_id=str(last_rec.get("_id")),
+                                                text=st.session_state.latest_transcript_text,
+                                                language=result.get("language"),
+                                                provider=result.get("provider", "openai"),
+                                                model=result.get("model", "whisper-1"),
+                                                segments=result.get("segments"),
+                                            )
+                                    except Exception:
+                                        pass
                                     st.success(
                                         f"✅ Transcribed ({result.get('language', selected_lang)} | {result.get('provider', 'OpenAI')})"
                                     )
@@ -526,13 +588,37 @@ def main():
                                     transcript=st.session_state.latest_transcript_text,
                                     target_level=cefr_level,
                                     question=st.session_state.current_question,
-                                    audio_duration=0.0  # TODO: Get actual duration
+                                    audio_duration=0.0
                                 )
                                 st.session_state.latest_evaluation = eval_result
+                                # Persist evaluation to Mongo (attach to latest transcript if any)
+                                try:
+                                    detail = mongo_get_session_detail(st.session_state.test_session_id)
+                                    recs = detail.get("recordings", [])
+                                    last_rec = recs[0] if recs else None
+                                    if last_rec:
+                                        # find transcript for last_rec (latest)
+                                        transcripts = list(db_mongo.client.db.transcripts.find({"recording_id": last_rec["_id"]}).sort("created_at", -1))  # noqa: E501
+                                        last_tr = transcripts[0] if transcripts else None
+                                        if last_tr:
+                                            mongo_add_evaluation(
+                                                transcript_id=str(last_tr.get("_id")),
+                                                overall_level=eval_result.predicted_level.value,
+                                                confidence=eval_result.confidence,
+                                                scores={
+                                                    "fluency": eval_result.criteria_scores.fluency,
+                                                    "accuracy": eval_result.criteria_scores.accuracy,
+                                                    "grammar": eval_result.criteria_scores.grammatical_range,
+                                                    "vocabulary": eval_result.criteria_scores.lexical_range,
+                                                    "coherence": eval_result.criteria_scores.task_achievement,
+                                                },
+                                                rationale=eval_result.detailed_feedback,
+                                                tips=eval_result.recommendations,
+                                            )
+                                except Exception:
+                                    pass
                                 st.success("✅ Assessment completed!")
                                 st.rerun()
-                            except Exception as e:
-                                st.error(f"❌ Assessment failed: {e}")
                     
                     # No evaluation yet
                     else:
