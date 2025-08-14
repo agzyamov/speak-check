@@ -266,6 +266,33 @@ def main():
         data_status = "loaded" if load_population_data() else "missing"
         st.sidebar.caption(f"Population data: {data_status}")
     
+    # Weather Context
+    st.sidebar.subheader("🌦️ Weather Context")
+    use_weather = st.sidebar.checkbox(
+        "Use weather context",
+        value=st.session_state.get("use_weather", False),
+        help="Augment prompts with current weather in a city.",
+    )
+    st.session_state.use_weather = use_weather
+    weather_city = st.sidebar.text_input("City", value=st.session_state.get("weather_city", "London"))
+    st.session_state.weather_city = weather_city
+    wx_summary = None
+    if use_weather:
+        try:
+            from weather_client import get_weather
+            wx = get_weather(weather_city)
+            if wx:
+                wx_summary = wx.get("summary")
+                st.sidebar.caption(f"{wx_summary}")
+                # stash in session for persistence
+                st.session_state.latest_weather = wx
+            else:
+                st.sidebar.caption("No weather data (stub or MCP unavailable)")
+        except Exception:
+            st.sidebar.caption("Weather fetch failed")
+
+    st.sidebar.markdown("---")
+    
     # TODO: Add exam type selection (monologue, dialogue, etc.)
     # TODO: Add difficulty settings within each level  
     # TODO: Add time limit configuration
@@ -370,9 +397,17 @@ def main():
             with question_placeholder:
                 # Get current question
                 if st.session_state.get("use_population_prompts"):
-                    question = generate_population_prompt(cefr_level, load_population_data())
+                    base_q = generate_population_prompt(cefr_level, load_population_data())
                 else:
-                    question = get_question_by_level(cefr_level)
+                    base_q = get_question_by_level(cefr_level)
+                # Weather augmentation
+                if st.session_state.get("use_weather") and st.session_state.get("latest_weather"):
+                    from weather_client import weather_prompt
+                    wx = st.session_state.latest_weather
+                    aug = weather_prompt(cefr_level, wx)
+                    question = f"{base_q}\n\nContext: {wx.get('summary')}\n{aug}"
+                else:
+                    question = base_q
                 
                 # Check if question changed (for auto-play)
                 question_changed = question != st.session_state.current_question
