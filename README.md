@@ -214,6 +214,64 @@ This project is in early development. Key areas for contribution:
 - UI/UX improvements
 - Testing and validation
 
+## 🐳 Docker Deployment
+
+The application can be deployed using Docker and Docker Compose for consistent environments.
+
+### Quick Start with Docker
+
+```bash
+# Build and run with Docker Compose
+./scripts/run-docker.sh
+
+# Or manually
+docker build -t speak-check .
+docker-compose up --build -d
+```
+
+### Access the Application
+
+- **App**: http://localhost:8501
+- **MongoDB**: localhost:27017
+
+### Environment Setup
+
+1. Create environment file:
+   ```bash
+   cp .env.docker .env.docker.local
+   # Edit with your API keys
+   ```
+
+2. Required environment variables:
+   - `OPENAI_API_KEY`: For STT and AI assessment
+   - `MONGODB_URI`: MongoDB connection string
+   - `GITHUB_PERSONAL_ACCESS_TOKEN`: For MCP features
+
+### Production Deployment
+
+```bash
+# Build production image
+docker build -f Dockerfile.prod -t speak-check:prod .
+
+# Run production container
+docker run -d --name speak-check-prod -p 8501:8501 --env-file .env.docker speak-check:prod
+```
+
+### Useful Commands
+
+```bash
+# View logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
+
+# Access MongoDB shell
+docker-compose exec mongo mongosh speak_check
+```
+
+For detailed Docker documentation, see [docs/docker.md](docs/docker.md).
+
 ## 📝 License
 
 [Add license information here]

@@ -3,3 +3,27 @@ __pycache__/
 .venv/
 venv/
 .env
+
+# Docker
+.env.docker
+docker-compose.override.yml
+.dockerignore
+
+# Logs
+logs/
+*.log
+.streamlit.log
+
+# Data
+data/temp/
+data/cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

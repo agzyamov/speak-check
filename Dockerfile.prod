@@ -1,0 +1,45 @@
+# Production-optimized Dockerfile
+FROM python:3.11-slim as base
+
+# Install only essential system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    portaudio19-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+WORKDIR /app
+
+# Copy requirements and install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy only necessary application files
+COPY app.py .
+COPY questions.py .
+COPY tts.py .
+COPY recording.py .
+COPY stt_openai.py .
+COPY eval_openai.py .
+COPY evaluate.py .
+COPY weather_client.py .
+COPY db_mongo/ ./db_mongo/
+COPY data/ ./data/
+
+# Create non-root user
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8501
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+
+# Production command with optimized settings
+CMD ["streamlit", "run", "app.py", \
+     "--server.port=8501", \
+     "--server.address=0.0.0.0", \
+     "--server.headless=true", \
+     "--browser.gatherUsageStats=false"]
