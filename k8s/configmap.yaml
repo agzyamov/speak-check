@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: speak-check
+data:
+  MONGODB_DB: "speak_check"
+  MONGODB_URI_INTERNAL: "mongodb://mongo:27017"

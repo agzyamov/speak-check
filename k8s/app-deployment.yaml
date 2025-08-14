@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: speak-check-app
+  namespace: speak-check
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: speak-check-app
+  template:
+    metadata:
+      labels:
+        app: speak-check-app
+    spec:
+      containers:
+        - name: app
+          image: speak-check:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8501
+          env:
+            - name: MONGODB_DB
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: MONGODB_DB
+            - name: MONGODB_URI
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: MONGODB_URI_INTERNAL
+            - name: OPENAI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: OPENAI_API_KEY
+            - name: GITHUB_PERSONAL_ACCESS_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: GITHUB_PERSONAL_ACCESS_TOKEN
+          readinessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /_stcore/health
+              port: 8501
+            initialDelaySeconds: 30
+            periodSeconds: 30
