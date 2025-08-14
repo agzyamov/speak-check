@@ -7,6 +7,9 @@ It provides a web interface for users to practice speaking tests at different CE
 
 import streamlit as st
 import os
+import json
+import random
+from pathlib import Path
 from questions import get_question_by_level
 from evaluate import evaluate_speaking_response
 from tts import speak, stop_speaking, is_speaking, get_available_voices, configure_tts
@@ -27,6 +30,39 @@ import db_mongo.client as mongo_client
 # TODO: Implement audio recording functionality
 # TODO: Add timer functionality for speaking responses
 # TODO: Implement progress tracking and session history
+
+
+@st.cache_data(ttl=60 * 60 * 24)
+def load_population_data() -> list[dict]:
+    p = Path("data/scraped/population.json")
+    if not p.exists():
+        return []
+    try:
+        data = json.loads(p.read_text())
+        # keep only valid rows with country and population
+        return [r for r in data if r.get("country") and isinstance(r.get("population"), int)]
+    except Exception:
+        return []
+
+
+def generate_population_prompt(level: str, data: list[dict]) -> str:
+    if not data:
+        return "Talk about population trends in your country."
+    # choose countries
+    pick = lambda: random.choice([r for r in data if r["country"].lower() not in {"world", "europe", "asia"}])
+    a = pick()
+    if level in {"A2", "B1"}:
+        return f"Describe life in {a['country']}. Mention how population size ({a['population']:,}) might affect daily life (transport, housing, jobs)."
+    # B2/C1 compare
+    b = pick()
+    tries = 0
+    while b["country"] == a["country"] and tries < 5:
+        b = pick(); tries += 1
+    return (
+        f"Compare {a['country']} (population {a['population']:,}) and {b['country']} (population {b['population']:,}). "
+        f"Discuss reasons for differences, and implications for economy, infrastructure, and environment."
+    )
+
 
 def main():
     """Main Streamlit application function."""
@@ -218,24 +254,53 @@ def main():
     
     st.sidebar.markdown("---")
     
+    # Data-driven prompts
+    st.sidebar.subheader("📊 Data-driven Prompts")
+    use_population_prompts = st.sidebar.checkbox(
+        "Use population dataset",
+        value=st.session_state.get("use_population_prompts", False),
+        help="Generate prompts from real population data (Wikipedia).",
+    )
+    st.session_state.use_population_prompts = use_population_prompts
+    if use_population_prompts:
+        data_status = "loaded" if load_population_data() else "missing"
+        st.sidebar.caption(f"Population data: {data_status}")
+    
     # TODO: Add exam type selection (monologue, dialogue, etc.)
     # TODO: Add difficulty settings within each level  
     # TODO: Add time limit configuration
     
     # History - recent sessions
     with st.sidebar.expander("📜 History", expanded=False):
+        def render_local_history():
+            local = st.session_state.get("session_history", [])
+            if not local:
+                st.caption("No local sessions yet.")
+                return
+            for idx, sess in enumerate(reversed(local[-10:])):
+                label = f"{sess.get('level','?')} • local • {sess.get('started_at','')}"
+                if st.button(label, key=f"local_sess_{idx}"):
+                    st.session_state.test_session_id = sess.get("id") or f"local_{idx}"
+                    st.session_state.current_level = sess.get("level", st.session_state.current_level)
+                    st.session_state.test_started = False
+                    st.rerun()
         try:
             sessions = mongo_list_sessions(limit=10)
-            for s in sessions:
-                sid = str(s.get("_id"))
-                label = f"{s.get('level', '?')} • {s.get('status', '')} • {s.get('started_at', '')}"
-                if st.button(label, key=f"sess_{sid}"):
-                    st.session_state.test_session_id = sid
-                    st.session_state.current_level = s.get("level", st.session_state.current_level)
-                    st.session_state.test_started = s.get("status") == "active"
-                    st.rerun()
-        except Exception as _:
-            st.caption("History not available yet. Ensure MongoDB is running.")
+            if sessions:
+                for s in sessions:
+                    sid = str(s.get("_id"))
+                    label = f"{s.get('level', '?')} • {s.get('status', '')} • {s.get('started_at', '')}"
+                    if st.button(label, key=f"sess_{sid}"):
+                        st.session_state.test_session_id = sid
+                        st.session_state.current_level = s.get("level", st.session_state.current_level)
+                        st.session_state.test_started = s.get("status") == "active"
+                        st.rerun()
+            else:
+                st.caption("No DB sessions yet. Showing local history:")
+                render_local_history()
+        except Exception:
+            st.caption("History not available from DB. Showing local history:")
+            render_local_history()
 
     # Main content area
     col1, col2 = st.columns([2, 1])
@@ -255,7 +320,8 @@ def main():
                     try:
                         sid = mongo_create_session(level=cefr_level)
                         st.session_state.test_session_id = sid
-                    except Exception as _:
+                    except Exception:
+                        # Fallback to ephemeral session id if DB is unavailable
                         st.session_state.test_session_id = f"session_{cefr_level}_{len(st.session_state.session_history)+1}"
                     # Add new session to session_history (UI only)
                     st.session_state.session_history.append({
@@ -274,6 +340,12 @@ def main():
             with col_btn2:
                 if st.button("🔄 New Question", use_container_width=True):
                     # Force regeneration of question by rerunning the app
+                    if st.session_state.get("use_population_prompts"):
+                        pop = load_population_data()
+                        st.session_state.current_question = generate_population_prompt(cefr_level, pop)
+                    else:
+                        # default path: just reset so a new random question will be generated below
+                        st.session_state.current_question = ""
                     st.rerun()
             with col_btn3:
                 if st.button("❌ End Test", type="secondary"):
@@ -297,7 +369,10 @@ def main():
             question_placeholder = st.container()
             with question_placeholder:
                 # Get current question
-                question = get_question_by_level(cefr_level)
+                if st.session_state.get("use_population_prompts"):
+                    question = generate_population_prompt(cefr_level, load_population_data())
+                else:
+                    question = get_question_by_level(cefr_level)
                 
                 # Check if question changed (for auto-play)
                 question_changed = question != st.session_state.current_question
@@ -598,7 +673,7 @@ def main():
                                     last_rec = recs[0] if recs else None
                                     if last_rec:
                                         # find transcript for last_rec (latest)
-                                        transcripts = list(db_mongo.client.db.transcripts.find({"recording_id": last_rec["_id"]}).sort("created_at", -1))  # noqa: E501
+                                        transcripts = list(mongo_client.db.transcripts.find({"recording_id": last_rec["_id"]}).sort("created_at", -1))  # noqa: E501
                                         last_tr = transcripts[0] if transcripts else None
                                         if last_tr:
                                             mongo_add_evaluation(
@@ -619,13 +694,8 @@ def main():
                                     pass
                                 st.success("✅ Assessment completed!")
                                 st.rerun()
-                    
-                    # No evaluation yet
-                    else:
-                        if st.session_state.latest_transcript_text:
-                            st.info("Click 'Evaluate Response' to get AI feedback on your transcript")
-                        else:
-                            st.info("Complete a recording and transcription to enable evaluation")
+                            except Exception as e:
+                                st.error(f"❌ Assessment failed: {e}")
             else:
                 st.subheader("🤖 AI Feedback")
                 st.info("Enable 'AI Assessment' in the sidebar to get detailed feedback")
