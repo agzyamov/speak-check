@@ -255,7 +255,8 @@ def main():
                     try:
                         sid = mongo_create_session(level=cefr_level)
                         st.session_state.test_session_id = sid
-                    except Exception as _:
+                    except Exception:
+                        # Fallback to ephemeral session id if DB is unavailable
                         st.session_state.test_session_id = f"session_{cefr_level}_{len(st.session_state.session_history)+1}"
                     # Add new session to session_history (UI only)
                     st.session_state.session_history.append({
