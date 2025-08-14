@@ -53,6 +53,10 @@ def main():
         st.session_state.stt_enabled = False
     if 'latest_transcript_text' not in st.session_state:
         st.session_state.latest_transcript_text = ""
+    if 'evaluation_enabled' not in st.session_state:
+        st.session_state.evaluation_enabled = False
+    if 'latest_evaluation' not in st.session_state:
+        st.session_state.latest_evaluation = None
     
     # Header
     st.title("🎤 CEFR Speaking Exam Simulator")
@@ -182,6 +186,25 @@ def main():
         st.sidebar.warning("⚠️ STT not available")
         st.sidebar.info("Set OPENAI_API_KEY environment variable to enable transcription")
         st.session_state.stt_enabled = False
+    
+    st.sidebar.markdown("---")
+    
+    # Evaluation Settings
+    st.sidebar.subheader("🤖 AI Assessment")
+    
+    # Check if evaluation is available (same as STT availability)
+    if stt_available():
+        evaluation_enabled = st.sidebar.checkbox(
+            "Enable AI Assessment",
+            value=st.session_state.evaluation_enabled,
+            help="Enable OpenAI GPT-based CEFR level assessment"
+        )
+        if evaluation_enabled != st.session_state.evaluation_enabled:
+            st.session_state.evaluation_enabled = evaluation_enabled
+    else:
+        st.sidebar.warning("⚠️ AI Assessment not available")
+        st.sidebar.info("Set OPENAI_API_KEY environment variable to enable assessment")
+        st.session_state.evaluation_enabled = False
     
     st.sidebar.markdown("---")
     
@@ -445,11 +468,81 @@ def main():
                                 st.error(f"❌ OpenAI Whisper error: {e}")
             
             # Evaluation area
-            st.subheader("🤖 AI Feedback")
-            evaluation_placeholder = st.container()
-            with evaluation_placeholder:
-                # TODO: Display AI evaluation results
-                st.info("AI evaluation will appear here after you complete your response")
+            if st.session_state.evaluation_enabled:
+                st.subheader("🤖 AI Feedback")
+                evaluation_placeholder = st.container()
+                with evaluation_placeholder:
+                    # Evaluation controls
+                    col_eval1, col_eval2 = st.columns([1, 2])
+                    with col_eval1:
+                        do_evaluate = st.button(
+                            "🎯 Evaluate Response",
+                            disabled=not st.session_state.latest_transcript_text,
+                            help="Run AI assessment on your transcribed response",
+                        )
+                    
+                    # Evaluation results area
+                    if st.session_state.latest_evaluation:
+                        eval_result = st.session_state.latest_evaluation
+                        
+                        # Overall assessment
+                        col_overall1, col_overall2, col_overall3 = st.columns(3)
+                        with col_overall1:
+                            st.metric("Overall Level", eval_result.predicted_level.value)
+                        with col_overall2:
+                            st.metric("Confidence", f"{eval_result.confidence:.1%}")
+                        with col_overall3:
+                            st.metric("Word Count", eval_result.word_count)
+                        
+                        # Detailed scores
+                        st.subheader("📊 Detailed Scores")
+                        col_scores1, col_scores2 = st.columns(2)
+                        
+                        with col_scores1:
+                            st.metric("Fluency", f"{eval_result.criteria_scores.fluency:.1f}/10")
+                            st.metric("Accuracy", f"{eval_result.criteria_scores.accuracy:.1f}/10")
+                            st.metric("Grammar", f"{eval_result.criteria_scores.grammatical_range:.1f}/10")
+                        
+                        with col_scores2:
+                            st.metric("Vocabulary", f"{eval_result.criteria_scores.lexical_range:.1f}/10")
+                            st.metric("Coherence", f"{eval_result.criteria_scores.task_achievement:.1f}/10")
+                            st.metric("Overall Score", f"{eval_result.overall_score:.1f}/10")
+                        
+                        # Detailed feedback
+                        st.subheader("📝 Detailed Feedback")
+                        st.markdown(eval_result.detailed_feedback)
+                        
+                        # Recommendations
+                        if eval_result.recommendations:
+                            st.subheader("💡 Recommendations")
+                            for i, rec in enumerate(eval_result.recommendations, 1):
+                                st.write(f"{i}. {rec}")
+                    
+                    # Run evaluation when requested
+                    elif do_evaluate and st.session_state.latest_transcript_text:
+                        with st.spinner("Assessing with AI..."):
+                            try:
+                                eval_result = evaluate_speaking_response(
+                                    transcript=st.session_state.latest_transcript_text,
+                                    target_level=cefr_level,
+                                    question=st.session_state.current_question,
+                                    audio_duration=0.0  # TODO: Get actual duration
+                                )
+                                st.session_state.latest_evaluation = eval_result
+                                st.success("✅ Assessment completed!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"❌ Assessment failed: {e}")
+                    
+                    # No evaluation yet
+                    else:
+                        if st.session_state.latest_transcript_text:
+                            st.info("Click 'Evaluate Response' to get AI feedback on your transcript")
+                        else:
+                            st.info("Complete a recording and transcription to enable evaluation")
+            else:
+                st.subheader("🤖 AI Feedback")
+                st.info("Enable 'AI Assessment' in the sidebar to get detailed feedback")
     
     with col2:
         st.header("📊 Session Info")

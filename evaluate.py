@@ -5,9 +5,15 @@ This module provides AI-based evaluation of speaking responses according to CEFR
 It analyzes transcribed speech for fluency, accuracy, complexity, and other linguistic features.
 """
 
+import logging
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
+from eval_openai import assess_speaking_response as openai_assess, is_available as openai_available
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # TODO: Integrate with OpenAI/Claude API for language evaluation
 # TODO: Implement linguistic analysis algorithms
@@ -67,11 +73,47 @@ def evaluate_speaking_response(
     Returns:
         EvaluationResult: Comprehensive evaluation results
     """
-    # TODO: Implement actual AI evaluation using language models
-    # TODO: Add prompt engineering for CEFR-specific evaluation
-    # TODO: Implement error analysis and categorization
+    # Use OpenAI assessment if available, otherwise fallback to basic evaluation
+    if openai_available():
+        try:
+            assessment = openai_assess(transcript, target_level, question)
+            
+            # Convert OpenAI assessment to EvaluationResult format
+            criteria = EvaluationCriteria(
+                fluency=assessment.scores.get("fluency", 6.0),
+                accuracy=assessment.scores.get("accuracy", 6.0),
+                lexical_range=assessment.scores.get("vocabulary", 6.0),
+                grammatical_range=assessment.scores.get("grammar", 6.0),
+                pronunciation=7.0,  # Not available from text-only assessment
+                task_achievement=assessment.scores.get("coherence", 6.0)
+            )
+            
+            overall_score = _calculate_overall_score(criteria)
+            predicted_level = CEFRLevel(assessment.overall_level)
+            
+            # Combine OpenAI feedback with recommendations
+            detailed_feedback = assessment.rationale
+            if assessment.strengths:
+                detailed_feedback += "\n\n**Strengths:**\n" + "\n".join(f"• {s}" for s in assessment.strengths)
+            if assessment.areas_for_improvement:
+                detailed_feedback += "\n\n**Areas for Improvement:**\n" + "\n".join(f"• {a}" for a in assessment.areas_for_improvement)
+            
+            return EvaluationResult(
+                overall_score=overall_score,
+                predicted_level=predicted_level,
+                confidence=assessment.confidence,
+                criteria_scores=criteria,
+                detailed_feedback=detailed_feedback,
+                recommendations=assessment.actionable_tips,
+                word_count=assessment.word_count,
+                response_time=audio_duration
+            )
+            
+        except Exception as e:
+            logger.error(f"OpenAI assessment failed, falling back to basic evaluation: {e}")
+            # Fall through to basic evaluation
     
-    # Placeholder implementation
+    # Basic evaluation (fallback)
     word_count = len(transcript.split()) if transcript else 0
     
     # Generate placeholder scores

@@ -64,7 +64,7 @@ speak-check/
 ├── tts.py              # Text-to-Speech functionality (Microsoft Edge TTS)
 ├── recording.py        # Voice recording functionality (PyAudio)
 ├── stt_openai.py       # Speech-to-text functionality (OpenAI Whisper API)
-├── evaluate.py         # AI-based CEFR scoring and evaluation
+├── eval_openai.py      # AI-based CEFR assessment (OpenAI GPT)
 ├── evaluate.py         # AI-based CEFR scoring and evaluation
 ├── test_recording.py   # Voice recording test script
 ├── requirements.txt    # Python dependencies
@@ -115,6 +115,14 @@ Handles speech-to-text conversion using OpenAI Whisper API:
 - Cloud-based processing for scalability
 - Automatic error handling and retry logic
 
+#### `eval_openai.py`
+Provides AI-powered CEFR assessment (OpenAI GPT):
+- Multi-criteria assessment (fluency, accuracy, lexical range, etc.)
+- CEFR level prediction based on linguistic analysis
+- Detailed feedback generation
+- Personalized improvement recommendations
+- Benchmark comparison against CEFR standards
+
 #### `evaluate.py`
 Provides AI-powered CEFR evaluation:
  - Multi-criteria assessment (fluency, accuracy, lexical range, etc.)
@@ -122,14 +130,6 @@ Provides AI-powered CEFR evaluation:
  - Detailed feedback generation
  - Personalized improvement recommendations
  - Benchmark comparison against CEFR standards
-
-#### `evaluate.py`
-Provides AI-powered CEFR evaluation:
-- Multi-criteria assessment (fluency, accuracy, lexical range, etc.)
-- CEFR level prediction based on linguistic analysis
-- Detailed feedback generation
-- Personalized improvement recommendations
-- Benchmark comparison against CEFR standards
 
 ## 🛠️ Current Status
 
@@ -148,6 +148,7 @@ Provides AI-powered CEFR evaluation:
 - ✅ **Audio Quality Controls** (speed, volume, voice selection)
 - ✅ **Thread-safe Operations** with robust error handling
 - ✅ **Modular Architecture** with clean separation of concerns
+- ✅ **AI Assessment** using OpenAI GPT for detailed feedback
 
 ### 🔄 TODO: Advanced Features to Implement
 - 🔄 **AI evaluation** using language models (OpenAI/Claude)
@@ -252,3 +253,37 @@ The app now supports managed speech transcription using OpenAI's Whisper API:
 - OpenAI Whisper API charges per minute of audio processed
 - Current pricing: ~$0.006 per minute (very affordable for practice)
 - No charges for failed transcriptions or API errors
+
+## 🤖 AI Assessment (OpenAI GPT)
+
+The app now provides AI-powered CEFR level assessment using OpenAI's GPT models:
+
+### Setup Requirements
+- **OpenAI API Key**: Same key used for STT (set `OPENAI_API_KEY` in `.env`)
+- **Internet Connection**: Required for API calls to OpenAI
+- **Transcript**: Requires a transcribed speech response
+
+### How to Use
+1. Enable "AI Assessment" in the sidebar settings
+2. Complete a recording and transcription (see STT section above)
+3. Click "Evaluate Response" to get detailed AI feedback
+4. Review your CEFR level, scores, and personalized recommendations
+
+### Assessment Criteria
+- **Fluency**: Natural flow, hesitations, speech rate
+- **Accuracy**: Grammatical correctness, vocabulary precision
+- **Grammar**: Sentence structure complexity, error patterns
+- **Vocabulary**: Word choice, lexical range, sophistication
+- **Coherence**: Logical organization, topic relevance, completeness
+
+### Features
+- **CEFR Level Prediction**: AI-determined proficiency level (A2-C1)
+- **Detailed Scoring**: 0-10 scale for each assessment criterion
+- **Personalized Feedback**: Strengths, areas for improvement, and actionable tips
+- **Confidence Scoring**: Assessment reliability indicator
+- **Fallback Mode**: Basic assessment when API is unavailable
+
+### Cost Considerations
+- OpenAI GPT API charges per token processed
+- Current pricing: ~$0.0001 per 1K tokens (very affordable)
+- Typical assessment: 500-1000 tokens per evaluation
