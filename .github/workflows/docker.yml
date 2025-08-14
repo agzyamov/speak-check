@@ -1,0 +1,57 @@
+name: Docker Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Build Docker image
+      run: docker build -t speak-check:test .
+    
+    - name: Test Docker image
+      run: |
+        # Start container in background
+        docker run -d --name test-app -p 8501:8501 speak-check:test
+        
+        # Wait for app to start
+        sleep 15
+        
+        # Test health endpoint
+        curl -f http://localhost:8501/_stcore/health || exit 1
+        
+        # Test basic connectivity
+        curl -f http://localhost:8501/ || exit 1
+        
+        # Cleanup
+        docker stop test-app
+        docker rm test-app
+    
+    - name: Build production image
+      run: docker build -f Dockerfile.prod -t speak-check:prod .
+    
+    - name: Test production image
+      run: |
+        # Start production container
+        docker run -d --name test-prod -p 8502:8501 speak-check:prod
+        
+        # Wait for app to start
+        sleep 15
+        
+        # Test health endpoint
+        curl -f http://localhost:8502/_stcore/health || exit 1
+        
+        # Cleanup
+        docker stop test-prod
+        docker rm test-prod
