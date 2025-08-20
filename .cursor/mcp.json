@@ -1,10 +1,16 @@
 {
-  "servers": {
+  "mcpServers": {
     "github": {
       "command": "/bin/bash",
       "args": [
         "-lc",
         "/Users/rustemagziamov/speak-check/scripts/run_github_mcp.sh"
+      ]
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "@playwright/mcp"
       ]
     }
   }
