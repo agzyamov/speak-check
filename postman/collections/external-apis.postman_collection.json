@@ -1,0 +1,462 @@
+{
+  "info": {
+    "name": "CEFR External APIs",
+    "description": "Testing external API integrations for CEFR Speaking Exam Simulator",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "OpenAI Integration",
+      "item": [
+        {
+          "name": "Whisper STT Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{openai_api_key}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": "postman/test-data/sample-audio.wav"
+                },
+                {
+                  "key": "model",
+                  "value": "whisper-1",
+                  "type": "text"
+                },
+                {
+                  "key": "language",
+                  "value": "en",
+                  "type": "text"
+                },
+                {
+                  "key": "response_format",
+                  "value": "json",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{openai_api_url}}/audio/transcriptions",
+              "host": ["{{openai_api_url}}"],
+              "path": ["audio", "transcriptions"]
+            },
+            "description": "Test OpenAI Whisper speech-to-text transcription"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Whisper API responds successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains transcription', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('text');",
+                  "    pm.expect(response.text).to.be.a('string');",
+                  "    pm.expect(response.text.length).to.be.above(0);",
+                  "});",
+                  "",
+                  "// Store transcription for use in other tests",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.globals.set('sample_transcription', response.text);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GPT CEFR Assessment Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{openai_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"model\": \"gpt-4o-mini\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a CEFR speaking assessment expert. Analyze the following speaking response and provide a CEFR level assessment (A2, B1, B2, C1) with detailed feedback.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Please assess this speaking response for CEFR level:\\n\\nQuestion: Describe your daily routine.\\n\\nResponse: I wake up at seven o'clock every morning. First, I brush my teeth and take a shower. Then I have breakfast with coffee and toast. After that, I go to work by bus. I work in an office from nine to five. In the evening, I like to watch TV or read books. I go to bed around eleven.\\n\\nPlease provide: 1) Overall CEFR level, 2) Confidence score (0-1), 3) Detailed scores for fluency, accuracy, vocabulary, grammar, coherence (0-10), 4) Specific feedback and recommendations.\"\n    }\n  ],\n  \"temperature\": 0.3,\n  \"max_tokens\": 1000\n}"
+            },
+            "url": {
+              "raw": "{{openai_api_url}}/chat/completions",
+              "host": ["{{openai_api_url}}"],
+              "path": ["chat", "completions"]
+            },
+            "description": "Test OpenAI GPT CEFR assessment functionality"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('GPT API responds successfully', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains assessment', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('choices');",
+                  "    pm.expect(response.choices).to.be.an('array');",
+                  "    pm.expect(response.choices[0]).to.have.property('message');",
+                  "    pm.expect(response.choices[0].message).to.have.property('content');",
+                  "});",
+                  "",
+                  "pm.test('Assessment contains CEFR level', function () {",
+                  "    const response = pm.response.json();",
+                  "    const content = response.choices[0].message.content;",
+                  "    // Check for CEFR level indicators",
+                  "    const cefrPattern = /\\b(A2|B1|B2|C1)\\b/i;",
+                  "    pm.expect(content).to.match(cefrPattern);",
+                  "});",
+                  "",
+                  "// Store assessment for reporting",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.globals.set('sample_assessment', response.choices[0].message.content);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "OpenAI Models List",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{openai_api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{openai_api_url}}/models",
+              "host": ["{{openai_api_url}}"],
+              "path": ["models"]
+            },
+            "description": "List available OpenAI models"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Models endpoint accessible', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Required models available', function () {",
+                  "    const response = pm.response.json();",
+                  "    const modelIds = response.data.map(model => model.id);",
+                  "    ",
+                  "    // Check for required models",
+                  "    pm.expect(modelIds).to.include('whisper-1');",
+                  "    pm.expect(modelIds.some(id => id.includes('gpt-4'))).to.be.true;",
+                  "});",
+                  "",
+                  "// Store available models",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const modelIds = response.data.map(model => model.id);",
+                  "    pm.globals.set('available_models', JSON.stringify(modelIds));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "GitHub Integration",
+      "item": [
+        {
+          "name": "Repository Information",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "token {{github_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/vnd.github.v3+json"
+              }
+            ],
+            "url": {
+              "raw": "{{github_api_url}}/repos/{{github_repo}}",
+              "host": ["{{github_api_url}}"],
+              "path": ["repos", "{{github_repo}}"]
+            },
+            "description": "Get repository information"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Repository accessible', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Repository details correct', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.full_name).to.eql('{{github_repo}}');",
+                  "    pm.expect(response.name).to.eql('speak-check');",
+                  "});",
+                  "",
+                  "// Store repository data",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.globals.set('repo_default_branch', response.default_branch);",
+                  "    pm.globals.set('repo_language', response.language);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Latest Issues",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "token {{github_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/vnd.github.v3+json"
+              }
+            ],
+            "url": {
+              "raw": "{{github_api_url}}/repos/{{github_repo}}/issues?state=open&per_page=5",
+              "host": ["{{github_api_url}}"],
+              "path": ["repos", "{{github_repo}}", "issues"],
+              "query": [
+                {
+                  "key": "state",
+                  "value": "open"
+                },
+                {
+                  "key": "per_page",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Get latest open issues"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Issues endpoint accessible', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Issues data structure valid', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.be.an('array');",
+                  "    ",
+                  "    if (response.length > 0) {",
+                  "        pm.expect(response[0]).to.have.property('number');",
+                  "        pm.expect(response[0]).to.have.property('title');",
+                  "        pm.expect(response[0]).to.have.property('state');",
+                  "    }",
+                  "});",
+                  "",
+                  "// Store issues count",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.globals.set('open_issues_count', response.length);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Latest Commits",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "token {{github_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/vnd.github.v3+json"
+              }
+            ],
+            "url": {
+              "raw": "{{github_api_url}}/repos/{{github_repo}}/commits?per_page=3",
+              "host": ["{{github_api_url}}"],
+              "path": ["repos", "{{github_repo}}", "commits"],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "3"
+                }
+              ]
+            },
+            "description": "Get latest commits"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Commits endpoint accessible', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Commits data structure valid', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.be.an('array');",
+                  "    pm.expect(response.length).to.be.above(0);",
+                  "    ",
+                  "    const commit = response[0];",
+                  "    pm.expect(commit).to.have.property('sha');",
+                  "    pm.expect(commit).to.have.property('commit');",
+                  "    pm.expect(commit.commit).to.have.property('message');",
+                  "});",
+                  "",
+                  "// Store latest commit info",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    const latestCommit = response[0];",
+                  "    pm.globals.set('latest_commit_sha', latestCommit.sha);",
+                  "    pm.globals.set('latest_commit_message', latestCommit.commit.message);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Weather Integration",
+      "item": [
+        {
+          "name": "Weather Service Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/weather?city=London",
+              "host": ["{{base_url}}"],
+              "path": ["weather"],
+              "query": [
+                {
+                  "key": "city",
+                  "value": "London"
+                }
+              ]
+            },
+            "description": "Test weather service endpoint (if exposed)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Weather endpoint check', function () {",
+                  "    // Accept 200 (if implemented) or 404 (not exposed)",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Weather data structure valid', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('summary');",
+                  "    });",
+                  "}",
+                  "",
+                  "// Store weather service availability",
+                  "pm.globals.set('weather_service_available', pm.response.code === 200);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Pre-request script for external APIs",
+          "console.log('Testing external API integrations...');",
+          "",
+          "// Validate API keys are set",
+          "const openaiKey = pm.environment.get('openai_api_key');",
+          "const githubToken = pm.environment.get('github_token');",
+          "",
+          "if (!openaiKey || openaiKey === '') {",
+          "    console.warn('OpenAI API key not set - some tests will fail');",
+          "}",
+          "",
+          "if (!githubToken || githubToken === '') {",
+          "    console.warn('GitHub token not set - some tests will fail');",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Common tests for all external API calls",
+          "pm.test('No server errors', function () {",
+          "    pm.expect(pm.response.code).to.be.below(500);",
+          "});",
+          "",
+          "pm.test('Response time reasonable', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(10000);",
+          "});"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}

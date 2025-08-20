@@ -1,0 +1,525 @@
+{
+  "info": {
+    "name": "CEFR Development & Testing",
+    "description": "Development utilities and testing helpers for CEFR Speaking Exam Simulator",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Configuration Validation",
+      "item": [
+        {
+          "name": "Environment Setup Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}",
+              "host": ["{{base_url}}"],
+              "path": []
+            },
+            "description": "Validate environment configuration is complete"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Comprehensive environment validation",
+                  "pm.test('Base URL configured', function () {",
+                  "    const baseUrl = pm.environment.get('base_url');",
+                  "    pm.expect(baseUrl).to.not.be.empty;",
+                  "    pm.expect(baseUrl).to.match(/^https?:\\/\\//);",
+                  "});",
+                  "",
+                  "pm.test('MongoDB URL configured', function () {",
+                  "    const mongoUrl = pm.environment.get('mongodb_url');",
+                  "    pm.expect(mongoUrl).to.not.be.empty;",
+                  "    pm.expect(mongoUrl).to.include('mongodb://');",
+                  "});",
+                  "",
+                  "pm.test('API URLs configured', function () {",
+                  "    const openaiUrl = pm.environment.get('openai_api_url');",
+                  "    const githubUrl = pm.environment.get('github_api_url');",
+                  "    ",
+                  "    pm.expect(openaiUrl).to.not.be.empty;",
+                  "    pm.expect(githubUrl).to.not.be.empty;",
+                  "    pm.expect(openaiUrl).to.include('openai.com');",
+                  "    pm.expect(githubUrl).to.include('github.com');",
+                  "});",
+                  "",
+                  "pm.test('Required secrets configured', function () {",
+                  "    const openaiKey = pm.environment.get('openai_api_key');",
+                  "    const githubToken = pm.environment.get('github_token');",
+                  "    ",
+                  "    // Check if secrets are set (not empty)",
+                  "    pm.expect(openaiKey).to.not.be.empty;",
+                  "    pm.expect(githubToken).to.not.be.empty;",
+                  "    ",
+                  "    // Basic format validation",
+                  "    if (openaiKey) pm.expect(openaiKey).to.match(/^sk-/);",
+                  "    if (githubToken) pm.expect(githubToken.length).to.be.above(10);",
+                  "});",
+                  "",
+                  "// Store validation results",
+                  "const validationResults = {",
+                  "    environment: pm.environment.name,",
+                  "    base_url: pm.environment.get('base_url'),",
+                  "    mongodb_configured: !!pm.environment.get('mongodb_url'),",
+                  "    openai_configured: !!pm.environment.get('openai_api_key'),",
+                  "    github_configured: !!pm.environment.get('github_token'),",
+                  "    timestamp: new Date().toISOString()",
+                  "};",
+                  "",
+                  "pm.globals.set('environment_validation', JSON.stringify(validationResults));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "API Keys Validation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{openai_api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{openai_api_url}}/models?limit=1",
+              "host": ["{{openai_api_url}}"],
+              "path": ["models"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "1"
+                }
+              ]
+            },
+            "description": "Quick validation that API keys work"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('OpenAI API key valid', function () {",
+                  "    pm.expect([200, 401, 403]).to.include(pm.response.code);",
+                  "    ",
+                  "    if (pm.response.code === 401 || pm.response.code === 403) {",
+                  "        pm.expect.fail('Invalid OpenAI API key');",
+                  "    }",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('OpenAI API response valid', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('data');",
+                  "        pm.expect(response.data).to.be.an('array');",
+                  "    });",
+                  "}",
+                  "",
+                  "// Store API key validation status",
+                  "pm.globals.set('openai_key_valid', pm.response.code === 200);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Test Data Generation",
+      "item": [
+        {
+          "name": "Generate Test Session Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"generate_test_data\",\n  \"type\": \"session\",\n  \"count\": 3,\n  \"levels\": [\"A2\", \"B1\", \"B2\"],\n  \"include_recordings\": true,\n  \"include_transcripts\": true,\n  \"include_evaluations\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/test/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "test", "generate"]
+            },
+            "description": "Generate test session data for development"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Test data generation endpoint', function () {",
+                  "    // Accept 200 (if implemented) or 404 (not implemented)",
+                  "    pm.expect([200, 201, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    pm.test('Test data generated successfully', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('generated');",
+                  "        pm.expect(response.generated).to.be.above(0);",
+                  "    });",
+                  "    ",
+                  "    // Store generated session IDs",
+                  "    const response = pm.response.json();",
+                  "    if (response.session_ids) {",
+                  "        pm.globals.set('generated_session_ids', JSON.stringify(response.session_ids));",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Sample Audio File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"create_sample_audio\",\n  \"text\": \"Hello, this is a test recording for the CEFR speaking exam simulator. I am practicing my English pronunciation and fluency.\",\n  \"language\": \"en\",\n  \"voice\": \"alloy\",\n  \"format\": \"wav\",\n  \"filename\": \"sample-test-audio.wav\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/test/audio/generate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "test", "audio", "generate"]
+            },
+            "description": "Generate sample audio file for testing"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Audio generation endpoint test', function () {",
+                  "    pm.expect([200, 201, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    pm.test('Audio file generated', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('file_path');",
+                  "        pm.expect(response).to.have.property('duration');",
+                  "    });",
+                  "    ",
+                  "    // Store audio file path",
+                  "    const response = pm.response.json();",
+                  "    pm.globals.set('sample_audio_path', response.file_path);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "System Information",
+      "item": [
+        {
+          "name": "Application Version Info",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/version",
+              "host": ["{{base_url}}"],
+              "path": ["api", "version"]
+            },
+            "description": "Get application version and build information"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Version endpoint test', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Version information available', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('version');",
+                  "        pm.expect(response).to.have.property('build_date');",
+                  "    });",
+                  "    ",
+                  "    // Store version info",
+                  "    const response = pm.response.json();",
+                  "    pm.globals.set('app_version', response.version);",
+                  "    pm.globals.set('app_build_date', response.build_date);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "System Dependencies Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/status/dependencies",
+              "host": ["{{base_url}}"],
+              "path": ["api", "status", "dependencies"]
+            },
+            "description": "Check status of system dependencies"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Dependencies status endpoint test', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Dependencies status available', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('mongodb');",
+                  "        pm.expect(response).to.have.property('openai');",
+                  "        pm.expect(response).to.have.property('filesystem');",
+                  "    });",
+                  "    ",
+                  "    // Store dependency status",
+                  "    const response = pm.response.json();",
+                  "    pm.globals.set('dependencies_status', JSON.stringify(response));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Performance Testing",
+      "item": [
+        {
+          "name": "Load Test - Multiple Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}",
+              "host": ["{{base_url}}"],
+              "path": []
+            },
+            "description": "Basic load testing - measure response times"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Application responds within reasonable time', function () {",
+                  "    pm.expect(pm.response.responseTime).to.be.below(3000);",
+                  "});",
+                  "",
+                  "pm.test('Application is stable under load', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "// Collect performance metrics",
+                  "const responseTime = pm.response.responseTime;",
+                  "const responseSize = pm.response.responseSize;",
+                  "",
+                  "// Store in global array for analysis",
+                  "let performanceData = pm.globals.get('performance_data');",
+                  "if (!performanceData) {",
+                  "    performanceData = [];",
+                  "} else {",
+                  "    performanceData = JSON.parse(performanceData);",
+                  "}",
+                  "",
+                  "performanceData.push({",
+                  "    timestamp: new Date().toISOString(),",
+                  "    response_time: responseTime,",
+                  "    response_size: responseSize,",
+                  "    status_code: pm.response.code",
+                  "});",
+                  "",
+                  "pm.globals.set('performance_data', JSON.stringify(performanceData));",
+                  "",
+                  "// Calculate average response time",
+                  "if (performanceData.length > 0) {",
+                  "    const avgResponseTime = performanceData.reduce((sum, data) => sum + data.response_time, 0) / performanceData.length;",
+                  "    pm.globals.set('avg_response_time', avgResponseTime.toFixed(2));",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Debugging Utilities",
+      "item": [
+        {
+          "name": "Debug Environment Variables",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/debug/env",
+              "host": ["{{base_url}}"],
+              "path": ["api", "debug", "env"]
+            },
+            "description": "Debug environment variables (sanitized)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Debug endpoint test', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Environment debug info available', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('environment');",
+                  "        pm.expect(response).to.have.property('config');",
+                  "    });",
+                  "    ",
+                  "    // Ensure no secrets are exposed",
+                  "    pm.test('No secrets exposed in debug info', function () {",
+                  "        const responseText = pm.response.text();",
+                  "        pm.expect(responseText).to.not.include('sk-');  // OpenAI key",
+                  "        pm.expect(responseText).to.not.include('ghp_'); // GitHub token",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Test Results Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}",
+              "host": ["{{base_url}}"],
+              "path": []
+            },
+            "description": "Generate summary of all test results"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Generate comprehensive test summary",
+                  "const summary = {",
+                  "    timestamp: new Date().toISOString(),",
+                  "    environment: pm.environment.name,",
+                  "    application_accessible: pm.response.code === 200,",
+                  "    environment_validation: pm.globals.get('environment_validation'),",
+                  "    openai_key_valid: pm.globals.get('openai_key_valid') === 'true',",
+                  "    db_connection_available: pm.globals.get('db_connection_available') === 'true',",
+                  "    weather_service_available: pm.globals.get('weather_service_available') === 'true',",
+                  "    performance: {",
+                  "        avg_response_time: pm.globals.get('avg_response_time'),",
+                  "        total_requests: pm.globals.get('performance_data') ? JSON.parse(pm.globals.get('performance_data')).length : 0",
+                  "    },",
+                  "    external_apis: {",
+                  "        openai_models: pm.globals.get('available_models'),",
+                  "        github_repo: pm.globals.get('repo_default_branch'),",
+                  "        sample_transcription: pm.globals.get('sample_transcription')",
+                  "    }",
+                  "};",
+                  "",
+                  "pm.globals.set('test_summary', JSON.stringify(summary, null, 2));",
+                  "",
+                  "console.log('=== CEFR Testing Summary ===');",
+                  "console.log('Environment:', summary.environment);",
+                  "console.log('Application Accessible:', summary.application_accessible);",
+                  "console.log('OpenAI Key Valid:', summary.openai_key_valid);",
+                  "console.log('Average Response Time:', summary.performance.avg_response_time + 'ms');",
+                  "console.log('============================');",
+                  "",
+                  "pm.test('Test summary generated', function () {",
+                  "    pm.expect(summary).to.have.property('timestamp');",
+                  "    pm.expect(summary).to.have.property('environment');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Pre-request script for development & testing collection",
+          "console.log('Running development & testing utilities...');",
+          "",
+          "// Initialize performance tracking if not exists",
+          "if (!pm.globals.get('performance_data')) {",
+          "    pm.globals.set('performance_data', JSON.stringify([]));",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Common test for all development utilities",
+          "pm.test('Development utility executed', function () {",
+          "    // All utilities should at least execute without server errors",
+          "    pm.expect(pm.response.code).to.be.below(500);",
+          "});"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}

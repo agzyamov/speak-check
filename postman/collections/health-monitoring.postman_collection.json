@@ -1,0 +1,288 @@
+{
+  "info": {
+    "name": "CEFR Health & Monitoring",
+    "description": "Health checks and monitoring for CEFR Speaking Exam Simulator",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Application Health",
+      "item": [
+        {
+          "name": "Streamlit App Availability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}",
+              "host": ["{{base_url}}"],
+              "path": []
+            },
+            "description": "Check if Streamlit application is accessible"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Application is accessible', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains CEFR content', function () {",
+                  "    pm.expect(pm.response.text()).to.include('CEFR');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Streamlit Health Endpoint",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check Streamlit health endpoint (if implemented)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Health endpoint responds', function () {",
+                  "    // Accept 200 (if implemented) or 404 (if not implemented)",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Health response is valid JSON', function () {",
+                  "        pm.response.to.be.json;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "System Dependencies",
+      "item": [
+        {
+          "name": "OpenAI API Connection",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{openai_api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{openai_api_url}}/models",
+              "host": ["{{openai_api_url}}"],
+              "path": ["models"]
+            },
+            "description": "Test OpenAI API connectivity and authentication"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('OpenAI API is accessible', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains models', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('data');",
+                  "    pm.expect(response.data).to.be.an('array');",
+                  "});",
+                  "",
+                  "pm.test('Whisper model available', function () {",
+                  "    const response = pm.response.json();",
+                  "    const models = response.data.map(model => model.id);",
+                  "    pm.expect(models).to.include('whisper-1');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GitHub API Connection",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "token {{github_token}}"
+              },
+              {
+                "key": "Accept",
+                "value": "application/vnd.github.v3+json"
+              }
+            ],
+            "url": {
+              "raw": "{{github_api_url}}/repos/{{github_repo}}",
+              "host": ["{{github_api_url}}"],
+              "path": ["repos", "{{github_repo}}"]
+            },
+            "description": "Test GitHub API connectivity and repository access"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('GitHub API is accessible', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Repository information available', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response).to.have.property('name');",
+                  "    pm.expect(response).to.have.property('full_name');",
+                  "    pm.expect(response.full_name).to.eql('{{github_repo}}');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "File System Health",
+      "item": [
+        {
+          "name": "Check Data Directory",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/static/data/scraped/population.json",
+              "host": ["{{base_url}}"],
+              "path": ["static", "data", "scraped", "population.json"]
+            },
+            "description": "Check if population data file is accessible"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Data file accessibility', function () {",
+                  "    // Accept 200 (accessible) or 404 (not exposed via web)",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "// Store result for reporting",
+                  "pm.globals.set('population_data_accessible', pm.response.code === 200);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Environment Validation",
+      "item": [
+        {
+          "name": "Environment Variables Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}",
+              "host": ["{{base_url}}"],
+              "path": []
+            },
+            "description": "Validate environment configuration"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Base URL is configured', function () {",
+                  "    pm.expect(pm.environment.get('base_url')).to.not.be.empty;",
+                  "});",
+                  "",
+                  "pm.test('MongoDB URL is configured', function () {",
+                  "    pm.expect(pm.environment.get('mongodb_url')).to.not.be.empty;",
+                  "});",
+                  "",
+                  "pm.test('OpenAI API key is set', function () {",
+                  "    const apiKey = pm.environment.get('openai_api_key');",
+                  "    pm.expect(apiKey).to.not.be.empty;",
+                  "    // Validate format (should start with 'sk-')",
+                  "    if (apiKey) {",
+                  "        pm.expect(apiKey).to.match(/^sk-/);",
+                  "    }",
+                  "});",
+                  "",
+                  "pm.test('GitHub token is set', function () {",
+                  "    const token = pm.environment.get('github_token');",
+                  "    pm.expect(token).to.not.be.empty;",
+                  "    // Basic format validation",
+                  "    if (token) {",
+                  "        pm.expect(token.length).to.be.above(10);",
+                  "    }",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Pre-request script for the entire collection",
+          "console.log('Running CEFR Health & Monitoring checks...');",
+          "console.log('Environment:', pm.environment.name);",
+          "console.log('Base URL:', pm.environment.get('base_url'));"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Post-request script for the entire collection",
+          "pm.test('Response time is acceptable', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(5000);",
+          "});"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}
