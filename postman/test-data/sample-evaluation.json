@@ -1,0 +1,31 @@
+{
+  "overall_level": "B1",
+  "confidence": 0.78,
+  "scores": {
+    "fluency": 7.0,
+    "accuracy": 8.0,
+    "grammar": 7.5,
+    "vocabulary": 6.5,
+    "coherence": 7.5
+  },
+  "word_count": 67,
+  "overall_score": 7.3,
+  "rationale": "The response demonstrates B1 level proficiency. The speaker uses clear, connected speech with good grammatical accuracy. Vocabulary is appropriate for the topic but could be more varied. The content is well-organized and easy to follow.",
+  "strengths": [
+    "Clear pronunciation and good rhythm",
+    "Appropriate use of time expressions",
+    "Logical sequence of daily activities",
+    "Good use of simple past and present tenses"
+  ],
+  "areas_for_improvement": [
+    "Expand vocabulary with more descriptive words",
+    "Use more complex sentence structures",
+    "Add more specific details about activities"
+  ],
+  "recommendations": [
+    "Practice using more advanced vocabulary for daily activities",
+    "Try connecting ideas with more sophisticated linking words",
+    "Add personal opinions or feelings about the routine",
+    "Practice varying sentence length and structure"
+  ]
+}

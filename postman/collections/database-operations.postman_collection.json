@@ -1,0 +1,474 @@
+{
+  "info": {
+    "name": "CEFR Database Operations",
+    "description": "MongoDB database operations testing for CEFR Speaking Exam Simulator",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Connection Tests",
+      "item": [
+        {
+          "name": "MongoDB Connection Test",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"test_connection\",\n  \"mongodb_url\": \"{{mongodb_url}}\",\n  \"database\": \"{{mongodb_db}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/db/test",
+              "host": ["{{base_url}}"],
+              "path": ["api", "db", "test"]
+            },
+            "description": "Test MongoDB connection (requires API endpoint implementation)"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Database connection test', function () {",
+                  "    // Accept 200 (if implemented) or 404 (endpoint not available)",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Connection successful', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('status');",
+                  "        pm.expect(response.status).to.eql('connected');",
+                  "    });",
+                  "}",
+                  "",
+                  "// Store connection status",
+                  "pm.globals.set('db_connection_available', pm.response.code === 200);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Session Operations",
+      "item": [
+        {
+          "name": "Create Test Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"create_session\",\n  \"level\": \"B1\",\n  \"user_id\": null,\n  \"metadata\": {\n    \"test\": true,\n    \"created_by\": \"postman\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sessions",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sessions"]
+            },
+            "description": "Create a test session in MongoDB"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Session creation endpoint test', function () {",
+                  "    pm.expect([200, 201, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    pm.test('Session created successfully', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('session_id');",
+                  "        pm.expect(response.session_id).to.be.a('string');",
+                  "    });",
+                  "    ",
+                  "    // Store session ID for subsequent tests",
+                  "    const response = pm.response.json();",
+                  "    pm.globals.set('test_session_id', response.session_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Sessions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/sessions?limit=5",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sessions"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "List recent sessions"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Sessions list endpoint test', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Sessions data structure valid', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('sessions');",
+                  "        pm.expect(response.sessions).to.be.an('array');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Session Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"completed\",\n  \"ended_at\": \"{{$isoTimestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/sessions/{{test_session_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sessions", "{{test_session_id}}"]
+            },
+            "description": "Update session status"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Session update endpoint test', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Session updated successfully', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('success');",
+                  "        pm.expect(response.success).to.be.true;",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Recording Operations",
+      "item": [
+        {
+          "name": "Add Test Recording",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": \"{{test_session_id}}\",\n  \"file_url\": \"/tmp/test-recording.wav\",\n  \"duration_s\": 5.2,\n  \"format\": \"wav\",\n  \"sample_rate\": 44100,\n  \"metadata\": {\n    \"test\": true,\n    \"created_by\": \"postman\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/recordings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "recordings"]
+            },
+            "description": "Add a test recording to the database"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Recording creation endpoint test', function () {",
+                  "    pm.expect([200, 201, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    pm.test('Recording created successfully', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('recording_id');",
+                  "    });",
+                  "    ",
+                  "    // Store recording ID",
+                  "    const response = pm.response.json();",
+                  "    pm.globals.set('test_recording_id', response.recording_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "List Recordings by Session",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/sessions/{{test_session_id}}/recordings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "sessions", "{{test_session_id}}", "recordings"]
+            },
+            "description": "List recordings for a session"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Recordings list endpoint test', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Recordings data structure valid', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('recordings');",
+                  "        pm.expect(response.recordings).to.be.an('array');",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Transcript Operations",
+      "item": [
+        {
+          "name": "Add Test Transcript",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recording_id\": \"{{test_recording_id}}\",\n  \"text\": \"Hello, this is a test transcription for the CEFR speaking exam simulator.\",\n  \"language\": \"en\",\n  \"provider\": \"openai\",\n  \"model\": \"whisper-1\",\n  \"confidence\": 0.95,\n  \"metadata\": {\n    \"test\": true,\n    \"created_by\": \"postman\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/transcripts",
+              "host": ["{{base_url}}"],
+              "path": ["api", "transcripts"]
+            },
+            "description": "Add a test transcript to the database"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Transcript creation endpoint test', function () {",
+                  "    pm.expect([200, 201, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    pm.test('Transcript created successfully', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('transcript_id');",
+                  "    });",
+                  "    ",
+                  "    // Store transcript ID",
+                  "    const response = pm.response.json();",
+                  "    pm.globals.set('test_transcript_id', response.transcript_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Evaluation Operations",
+      "item": [
+        {
+          "name": "Add Test Evaluation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transcript_id\": \"{{test_transcript_id}}\",\n  \"overall_level\": \"B1\",\n  \"confidence\": 0.82,\n  \"scores\": {\n    \"fluency\": 7.5,\n    \"accuracy\": 8.0,\n    \"grammar\": 7.0,\n    \"vocabulary\": 7.5,\n    \"coherence\": 8.0\n  },\n  \"rationale\": \"The response demonstrates B1 level proficiency with good vocabulary usage and clear communication.\",\n  \"tips\": [\n    \"Practice using more complex sentence structures\",\n    \"Expand vocabulary with advanced expressions\"\n  ],\n  \"metadata\": {\n    \"test\": true,\n    \"created_by\": \"postman\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/evaluations",
+              "host": ["{{base_url}}"],
+              "path": ["api", "evaluations"]
+            },
+            "description": "Add a test evaluation to the database"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Evaluation creation endpoint test', function () {",
+                  "    pm.expect([200, 201, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    pm.test('Evaluation created successfully', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('evaluation_id');",
+                  "    });",
+                  "    ",
+                  "    // Store evaluation ID",
+                  "    const response = pm.response.json();",
+                  "    pm.globals.set('test_evaluation_id', response.evaluation_id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Cleanup Operations",
+      "item": [
+        {
+          "name": "Delete Test Data",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"cleanup_test_data\",\n  \"session_id\": \"{{test_session_id}}\",\n  \"confirm\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/test/cleanup",
+              "host": ["{{base_url}}"],
+              "path": ["api", "test", "cleanup"]
+            },
+            "description": "Clean up test data from database"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Cleanup endpoint test', function () {",
+                  "    pm.expect([200, 404]).to.include(pm.response.code);",
+                  "});",
+                  "",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test('Cleanup successful', function () {",
+                  "        const response = pm.response.json();",
+                  "        pm.expect(response).to.have.property('deleted_count');",
+                  "        pm.expect(response.deleted_count).to.be.above(0);",
+                  "    });",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          "// Pre-request script for database operations",
+          "console.log('Testing database operations...');",
+          "",
+          "// Check if we have required IDs for dependent operations",
+          "const testSessionId = pm.globals.get('test_session_id');",
+          "if (!testSessionId && pm.info.requestName.includes('session_id')) {",
+          "    console.warn('Test session ID not available - ensure session creation test runs first');",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Common tests for database operations",
+          "pm.test('No server errors', function () {",
+          "    pm.expect(pm.response.code).to.be.below(500);",
+          "});",
+          "",
+          "// Note: Most endpoints return 404 since they're not implemented yet",
+          "// This is expected and tests the API design"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "text": "Hello, my name is John and I would like to tell you about my daily routine. Every morning I wake up at seven o'clock and I have breakfast with my family. After that, I go to work by bus. I work in an office from nine to five. In the evening, I like to watch television or read books. I usually go to bed around eleven o'clock.",
+  "language": "en",
+  "duration": 15.3,
+  "word_count": 67,
+  "confidence": 0.92,
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 3.2,
+      "text": "Hello, my name is John and I would like to tell you about my daily routine."
+    },
+    {
+      "start": 3.5,
+      "end": 7.8,
+      "text": "Every morning I wake up at seven o'clock and I have breakfast with my family."
+    },
+    {
+      "start": 8.1,
+      "end": 11.0,
+      "text": "After that, I go to work by bus."
+    },
+    {
+      "start": 11.3,
+      "end": 15.3,
+      "text": "I work in an office from nine to five. In the evening, I like to watch television or read books. I usually go to bed around eleven o'clock."
+    }
+  ]
+}
