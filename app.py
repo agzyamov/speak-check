@@ -3,6 +3,7 @@ CEFR Speaking Exam Simulator - Main Streamlit Application
 
 This is the main entry point for the CEFR Speaking Exam Simulator.
 It provides a web interface for users to practice speaking tests at different CEFR levels.
+Now includes user authentication and session management.
 """
 
 import streamlit as st
@@ -25,6 +26,7 @@ from db_mongo.crud import (
     get_session_detail as mongo_get_session_detail,
 )
 import db_mongo.client as mongo_client
+from streamlit_auth import streamlit_auth
 
 # TODO: Add session state management for exam progress
 # TODO: Implement audio recording functionality
@@ -73,6 +75,12 @@ def main():
         page_icon="🎤",
         layout="wide"
     )
+    
+    # Require authentication - this will show login/register form if not authenticated
+    streamlit_auth.require_auth()
+    
+    # Render user menu in sidebar for authenticated users
+    streamlit_auth.render_user_menu()
     
     # Initialize session state
     if 'test_started' not in st.session_state:
@@ -345,7 +353,10 @@ def main():
                     st.session_state.current_level = cefr_level
                     # Persist session in Mongo
                     try:
-                        sid = mongo_create_session(level=cefr_level)
+                        # Get current user ID from authentication
+                        user_data = streamlit_auth.get_user_data()
+                        user_id = user_data.get("user_id") if user_data else None
+                        sid = mongo_create_session(level=cefr_level, user_id=user_id)
                         st.session_state.test_session_id = sid
                     except Exception:
                         # Fallback to ephemeral session id if DB is unavailable

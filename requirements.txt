@@ -43,13 +43,26 @@ pymongo>=4.7.0
 # noisereduce>=3.0.0  # Noise reduction
 
 # Development and testing (commented out for production)
-# pytest>=7.4.0
+pytest>=7.4.0  # Testing framework
+pytest-asyncio>=0.21.0  # Async test support
+httpx>=0.25.0  # HTTP client for testing FastAPI
 # black>=23.0.0
 # flake8>=6.0.0
 # mypy>=1.5.0
 
 # Env loader
 python-dotenv>=1.0.1
+
+# Authentication and security
+bcrypt>=4.0.0  # Password hashing
+PyJWT>=2.8.0  # JWT token handling
+email-validator>=2.0.0  # Email validation
+
+# API framework
+fastapi>=0.104.0  # Web API framework
+uvicorn>=0.24.0  # ASGI server for FastAPI
+python-multipart>=0.0.6  # Form data parsing
+slowapi>=0.1.9  # Rate limiting for FastAPI
 
 # Note: Some packages are commented out as placeholders
 # Uncomment and install as needed during development
