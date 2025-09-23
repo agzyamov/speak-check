@@ -60,6 +60,7 @@ pip install -r requirements.txt
 ```
 speak-check/
 ├── app.py              # Main Streamlit application entry point
+├── hello_world.py      # Simple "Hello, World!" demonstration script
 ├── questions.py        # CEFR-level speaking prompts and question management
 ├── tts.py              # Text-to-Speech functionality (Microsoft Edge TTS)
 ├── recording.py        # Voice recording functionality (PyAudio)
@@ -81,6 +82,12 @@ The main Streamlit application providing the web interface. Features:
 - Real-time transcript display
 - AI evaluation results presentation
 - Session progress tracking
+
+#### `hello_world.py`
+A simple demonstration script that prints "Hello, World!" to the console. This basic script serves as:
+- A simple entry point for testing Python execution
+- A minimal example of the project's coding conventions
+- A quick verification that the Python environment is working correctly
 
 #### `questions.py`
 Manages speaking prompts organized by CEFR levels:
